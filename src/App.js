@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect, Circle } from "react-konva";
 import './App.css';
-
+import logo from './assets/logo.png';
 const App = () => {
     
     
@@ -453,6 +453,7 @@ const App = () => {
 
 
         return (
+
             <div
                 style={{
                     padding: '10px',
@@ -464,6 +465,30 @@ const App = () => {
                     gap: '20px',
                 }}
             >
+          
+                {/* Logo Section */}
+<div
+    style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '10px', // Adjust padding to control internal spacing
+        height: '10px', // Set a fixed height for the header
+        backgroundColor: '#f0f0f0', // Optional: Adjust background color
+    }}
+>
+    <img
+        src={logo}
+        className="App-logo"
+        alt="logo"
+        style={{
+            height: '70px', // Smaller logo size
+            marginBottom: '5px', // Add minimal spacing below the logo
+        }}
+    />
+</div>
+
                 <h3>Simulation Config</h3>
 
                 {/* Tools Section */}
@@ -510,6 +535,7 @@ const App = () => {
                         </p>
                     )}
                 </div>
+                {/*
                 <div>
                     <label>
                         Show Alignment Guides:
@@ -524,8 +550,9 @@ const App = () => {
                             }
                         />
                     </label>
+                    </div>
+                 */}
                 </div>
-            </div>
             
             
         );
