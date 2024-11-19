@@ -200,9 +200,6 @@ const App = () => {
     };
 
     const findElementByPoint = (x, y) => {
-        for (const g of geometry) {
-            if (isPointInPolygon(x, y, g.points)) return { id: g.id, type: "geometry" };
-        }
         for (const w of waypoints) {
             if (isPointInCircle(x, y, w.x, w.y, w.radius)) return { id: w.id, type: "waypoint", x: w.x, y: w.y };
         }
@@ -259,33 +256,6 @@ const App = () => {
         URL.revokeObjectURL(url);
     };
 
-    const waypointsDragHandlers = {
-        onDragStart: () => setIsDragging(true), // Set dragging flag
-        onDragMove: (e, i) => {
-            setIsDragging(false); // Reset dragging flag
-            const pos = e.target.position();
-            const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
-            const updatedWaypoint = { ...waypoints[i], x: scaledPos.x, y: scaledPos.y };
-            setWaypoints(
-                waypoints.map((wp, index) =>
-                    index === i ? { ...wp, x: scaledPos.x, y: scaledPos.y } : wp
-                )
-            );
-            updateConnections(updatedWaypoint);
-        },
-        onDragEnd: (e, i) => {
-            setIsDragging(false); // Reset dragging flag
-            const pos = e.target.position();
-            const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
-            const updatedWaypoint = { ...waypoints[i], x: scaledPos.x, y: scaledPos.y };
-            setWaypoints(
-                waypoints.map((wp, index) =>
-                    index === i ? { ...wp, x: scaledPos.x, y: scaledPos.y } : wp
-                )
-            );
-            updateConnections(updatedWaypoint);
-        },
-    };
 
 
 
@@ -389,7 +359,17 @@ const App = () => {
         },
     };
 
-    
+    const waypointsDragHandlers = {
+        onDragStart: () => setIsDragging(true), // Set dragging flag
+        onDragMove: (e, i) => {
+            setIsDragging(true); // Reset dragging flag
+            handleDrag(waypoints[i], i, setWaypoints, waypoints, e);
+        },
+        onDragEnd: (e, i) => {
+            setIsDragging(false); // Reset dragging flag
+            handleDrag(waypoints[i], i, setWaypoints, waypoints, e);
+        },
+    };
     return (
         <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
             <div style={{ flex: 1, padding: "20px", backgroundColor: "#f4f4f9" }}>
@@ -422,47 +402,6 @@ const App = () => {
                 >
                     <Layer>
                         {showGrid && renderGrid()}                        
-                        {/* Waypoints */}
-                        {waypoints.map((w, i) => (
-                            <Circle
-                                key={`wp-${i}`}
-                                x={w.x * SCALE}
-                                y={w.y * SCALE}
-                                radius={w.radius * SCALE}
-                                fill="purple"
-                                draggable
-                                onDragStart={waypointsDragHandlers.onDragStart}
-                                onDragMove={(e) => {
-                                    const pos = e.target.position();
-                                    const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
-                                    const updatedWaypoint = { ...w, x: scaledPos.x, y: scaledPos.y };
-
-                                    // Update the waypoint position
-                                    setWaypoints(
-                                        waypoints.map((wp, index) =>
-                                            index === i ? updatedWaypoint : wp
-                                        )
-                                    );
-
-                                    // Update connections live
-                                    updateConnections(updatedWaypoint);
-                                }}
-                                onDragEnd={(e) => waypointsDragHandlers.onDragEnd(e, i)}
-                            />
-                        ))}
-
-                        {/* Current Waypoint */}
-                        {currentWaypoint && (
-                            <Circle
-                                x={currentWaypoint.x * SCALE}
-                                y={currentWaypoint.y * SCALE}
-                                radius={currentWaypoint.radius * SCALE}
-                                stroke="purple"
-                                strokeWidth={2}
-                                dash={[10, 5]}
-                                fill="rgba(128, 0, 128, 0.2)"
-                            />
-                        )}
 
                         {/* Geometry */}
                         
@@ -503,6 +442,47 @@ const App = () => {
                                     />
                                 )}
                             </>
+                        )}
+                        {/* Waypoints */}
+                        {waypoints.map((w, i) => (
+                            <Circle
+                                key={`wp-${i}`}
+                                x={w.x * SCALE}
+                                y={w.y * SCALE}
+                                radius={w.radius * SCALE}
+                                fill="purple"
+                                draggable
+                                onDragStart={waypointsDragHandlers.onDragStart}
+                                onDragMove={(e) => {
+                                    const pos = e.target.position();
+                                    const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+                                    const updatedWaypoint = { ...w, x: scaledPos.x, y: scaledPos.y };
+
+                                    // Update the waypoint position
+                                    setWaypoints(
+                                        waypoints.map((wp, index) =>
+                                            index === i ? updatedWaypoint : wp
+                                        )
+                                    );
+
+                                    // Update connections live
+                                    updateConnections(updatedWaypoint);
+                                }}
+                                onDragEnd={(e) => waypointsDragHandlers.onDragEnd(e, i)}
+                            />
+                        ))}
+
+                        {/* Current Waypoint */}
+                        {currentWaypoint && (
+                            <Circle
+                                x={currentWaypoint.x * SCALE}
+                                y={currentWaypoint.y * SCALE}
+                                radius={currentWaypoint.radius * SCALE}
+                                stroke="purple"
+                                strokeWidth={2}
+                                dash={[10, 5]}
+                                fill="rgba(128, 0, 128, 0.2)"
+                            />
                         )}
 
                         {/* Exits */}
