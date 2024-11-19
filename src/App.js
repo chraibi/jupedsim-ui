@@ -2,8 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect, Circle } from "react-konva";
 
 const App = () => {
-    const SCALE = 50; // 1 meter = 50 pixels
-    const GRID_SPACING = 50; // Grid line spacing in pixels
+    
+    
+    const [config, setConfig] = useState({
+        gridSpacing: 50,
+        showGrid: true,
+        scale: 10,
+    });
     const [tool, setTool] = useState("geometry");
     const [geometry, setGeometry] = useState([]);
     const [exits, setExits] = useState([]);
@@ -17,7 +22,7 @@ const App = () => {
     const [currentExit, setCurrentExit] = useState(null);
     const [currentWaypoint, setCurrentWaypoint] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
-    const [showGrid, setShowGrid] = useState(true);
+
     const generateId = (prefix) => `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
     // Esc key handler
     useEffect(() => {
@@ -43,7 +48,7 @@ const App = () => {
     const handleMouseDown = (e) => {
         if (isDragging || !tool) return; // Skip if dragging an object
         const pos = e.target.getStage().getPointerPosition();
-        const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+        const scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
 
         if (tool === "delete") {
             const elementToDelete = findElementByPoint(scaledPos.x, scaledPos.y);
@@ -126,10 +131,10 @@ const App = () => {
                             from: startElement.id,
                             to: endElement.id,
                             points: [
-                                startElement.x * SCALE,
-                                startElement.y * SCALE,
-                                endElement.x * SCALE,
-                                endElement.y * SCALE,
+                                startElement.x * config.scale,
+                                startElement.y * config.scale,
+                                endElement.x * config.scale,
+                                endElement.y * config.scale,
                             ],
                         },
                     ]);
@@ -141,7 +146,7 @@ const App = () => {
 
     const handleMouseMove = (e) => {
         const pos = e.target.getStage().getPointerPosition();
-        const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+        const scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
         setMousePosition(scaledPos);
         if (tool === "geometry" && currentGeometryPoints) {
             // Only update mousePosition for the dashed line
@@ -178,8 +183,8 @@ const App = () => {
         if (tool === "connection" && currentConnectionPath) {
             setCurrentConnectionPath({
                 ...currentConnectionPath,
-                tempX: scaledPos.x * SCALE,
-                tempY: scaledPos.y * SCALE,
+                tempX: scaledPos.x * config.scale,
+                tempY: scaledPos.y * config.scale,
             });
         }
     };
@@ -265,24 +270,24 @@ const App = () => {
         const height = window.innerHeight;
 
         // Vertical lines
-        for (let x = 0; x <= width; x += GRID_SPACING) {
+        for (let x = 0; x <= width; x += config.gridSpacing) {
             lines.push(
                 <Line
                     key={`v-${x}`}
                     points={[x, 0, x, height]}
-                    stroke="#8d8d8d"
+                    stroke="#b3b3b3"
                     strokeWidth={1}
                 />
             );
         }
 
         // Horizontal lines
-        for (let y = 0; y <= height; y += GRID_SPACING) {
+        for (let y = 0; y <= height; y += config.gridSpacing) {
             lines.push(
                 <Line
                     key={`h-${y}`}
                     points={[0, y, width, y]}
-                    stroke="#8d8d8d"
+                    stroke="#b3b3b3"
                     strokeWidth={1}
                 />
             );
@@ -297,11 +302,11 @@ const App = () => {
             if (c.from === updatedElement.id) {
                 // Update the source point
                 const sourceX =
-                      updatedElement.x * SCALE +
-                      (updatedElement.width ? (updatedElement.width / 2) * SCALE : 0);
+                      updatedElement.x * config.scale +
+                      (updatedElement.width ? (updatedElement.width / 2) * config.scale : 0);
                 const sourceY =
-                      updatedElement.y * SCALE +
-                      (updatedElement.height ? (updatedElement.height / 2) * SCALE : 0);
+                      updatedElement.y * config.scale +
+                      (updatedElement.height ? (updatedElement.height / 2) * config.scale : 0);
                 return {
                     ...c,
                     points: [sourceX, sourceY, c.points[2], c.points[3]],
@@ -309,11 +314,11 @@ const App = () => {
             } else if (c.to === updatedElement.id) {
                 // Update the destination point
                 const targetX =
-                      updatedElement.x * SCALE +
-                      (updatedElement.width ? (updatedElement.width / 2) * SCALE : 0);
+                      updatedElement.x * config.scale +
+                      (updatedElement.width ? (updatedElement.width / 2) * config.scale : 0);
                 const targetY =
-                      updatedElement.y * SCALE +
-                      (updatedElement.height ? (updatedElement.height / 2) * SCALE : 0);
+                      updatedElement.y * config.scale +
+                      (updatedElement.height ? (updatedElement.height / 2) * config.scale : 0);
                 return {
                     ...c,
                     points: [c.points[0], c.points[1], targetX, targetY],
@@ -326,7 +331,7 @@ const App = () => {
     };
     const handleDrag = (updatedElement, i, setElements, elements, e) => {
         const pos = e.target.position();
-        const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+        const scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
         const updatedObject = { ...updatedElement, x: scaledPos.x, y: scaledPos.y };
         setElements(
             elements.map((element, index) =>
@@ -335,6 +340,8 @@ const App = () => {
         );
         updateConnections(updatedObject);
     };
+    
+
     const exitsDragHandlers = {
         onDragStart: () => setIsDragging(true),
         onDragMove: (e, i) => {
@@ -370,27 +377,100 @@ const App = () => {
             handleDrag(waypoints[i], i, setWaypoints, waypoints, e);
         },
     };
-    return (
-        <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
-            <div style={{ flex: 1, padding: "20px", backgroundColor: "#f4f4f9" }}>
-                <h2>Simulation Setup</h2>
-                <button onClick={() => setTool("geometry")}>Geometry Tool</button>
-                <button onClick={() => setTool("waypoint")}>Waypoint Tool</button>
-                <button onClick={() => setTool("exit")}>Exit Tool</button>
-                <button onClick={() => setTool("distribution")}>Distribution Tool</button>
-                <button onClick={() => setTool("connection")}>Connection Tool</button>
-                <button onClick={() => setTool("delete")}>Delete Tool</button>
-                <button onClick={() => setShowGrid(!showGrid)}> {showGrid ? "Hide Grid": "Show Gird"}  </button>
-                <button onClick={exportData} style={{ backgroundColor: "#4CAF50", color: "white" }}>
-                    Export Data
-                </button>
+
+    const ConfigPanel = () => (
+  <div
+    style={{
+      padding: '10px',
+      backgroundColor: '#f0f0f0',
+      borderRight: '1px solid #ccc',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '20px',
+    }}
+  >
+    <h3>Simulation Config</h3>
+
+    {/* Grid Config Section */}
+    <div style={{ borderBottom: '1px solid #ccc', paddingBottom: '10px' }}>
+      <h4>Grid Settings</h4>
+      <div>
+        <label>
+          Grid Spacing (pixels):
+          <input
+            type="number"
+            value={config.gridSpacing}
+            onChange={(e) =>
+              setConfig((prev) => ({
+                ...prev,
+                gridSpacing: Number(e.target.value),
+              }))
+            }
+          />
+        </label>
+      </div>
+      <div>
+        <label>
+          Snap Threshold (pixels):
+          <input
+            type="number"
+            value={config.snapThreshold}
+            onChange={(e) =>
+              setConfig((prev) => ({
+                ...prev,
+                snapThreshold: Number(e.target.value),
+              }))
+            }
+          />
+        </label>
+      </div>
+      <div>
+        <label>
+          Show Grid:
+          <input
+            type="checkbox"
+            checked={config.showGrid}
+            onChange={(e) =>
+              setConfig((prev) => ({
+                ...prev,
+                showGrid: e.target.checked,
+              }))
+            }
+          />
+        </label>
+      </div>
+    </div>
+
+    {/* History Actions Section */}
+
+    {/* Tools Section */}
+    <div>
+      <h4>Tools</h4>
+      <button onClick={() => setTool('geometry')}>Geometry Tool</button>
+      <button onClick={() => setTool('waypoint')}>Waypoint Tool</button>
+      <button onClick={() => setTool('exit')}>Exit Tool</button>
+      <button onClick={() => setTool('distribution')}>Distribution Tool</button>
+      <button onClick={() => setTool('connection')}>Connection Tool</button>
+      <button onClick={() => setTool('delete')}>Delete Tool</button>
+    </div>
+                  <div>
                 <p><strong>Current Tool:</strong> {tool || "None"}</p>
                 {mousePosition && (
                     <p>
-                        <strong>Mouse Position:</strong> ({mousePosition.x.toFixed(2)} m, {mousePosition.y.toFixed(2)} m)
+                        ({mousePosition.x.toFixed(2)} m, {mousePosition.y.toFixed(2)} m)
                     </p>
                 )}
             </div>
+
+  </div>
+);
+
+   
+
+    return (
+        <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
+            <ConfigPanel />
             <div style={{ flex: 3 }}>
                 <Stage
                     width={window.innerWidth * 0.75}
@@ -401,14 +481,14 @@ const App = () => {
                     style={{ background: "#ddd" }}
                 >
                     <Layer>
-                        {showGrid && renderGrid()}                        
+                        {config.showGrid && renderGrid()}                        
 
                         {/* Geometry */}
                         
                         {geometry.map((polygon, i) => (
                             <Line
                                 key={`geo-${i}`}
-                                points={polygon.points.map((p) => p * SCALE)}
+                                points={polygon.points.map((p) => p * config.scale)}
                                 stroke="blue"
                                 strokeWidth={2}
                                 closed
@@ -421,7 +501,7 @@ const App = () => {
                             <>
                                 <Line
                                     points={currentGeometryPoints.flatMap((p, i) =>
-                                        i % 2 === 0 ? [p * SCALE, currentGeometryPoints[i + 1] * SCALE] : []
+                                        i % 2 === 0 ? [p * config.scale, currentGeometryPoints[i + 1] * config.scale] : []
                                     )}
                                     stroke="blue"
                                     strokeWidth={2}
@@ -430,10 +510,10 @@ const App = () => {
                                 {mousePosition && (
                                     <Line
                                         points={[
-                                            currentGeometryPoints[currentGeometryPoints.length - 2] * SCALE,
-                                            currentGeometryPoints[currentGeometryPoints.length - 1] * SCALE,
-                                            mousePosition.x * SCALE,
-                                            mousePosition.y * SCALE,
+                                            currentGeometryPoints[currentGeometryPoints.length - 2] * config.scale,
+                                            currentGeometryPoints[currentGeometryPoints.length - 1] * config.scale,
+                                            mousePosition.x * config.scale,
+                                            mousePosition.y * config.scale,
                                         ]}
                                         stroke="red"
                                         strokeWidth={2}
@@ -447,15 +527,15 @@ const App = () => {
                         {waypoints.map((w, i) => (
                             <Circle
                                 key={`wp-${i}`}
-                                x={w.x * SCALE}
-                                y={w.y * SCALE}
-                                radius={w.radius * SCALE}
+                                x={w.x * config.scale}
+                                y={w.y * config.scale}
+                                radius={w.radius * config.scale}
                                 fill="purple"
                                 draggable
                                 onDragStart={waypointsDragHandlers.onDragStart}
                                 onDragMove={(e) => {
                                     const pos = e.target.position();
-                                    const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+                                    const scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
                                     const updatedWaypoint = { ...w, x: scaledPos.x, y: scaledPos.y };
 
                                     // Update the waypoint position
@@ -475,9 +555,9 @@ const App = () => {
                         {/* Current Waypoint */}
                         {currentWaypoint && (
                             <Circle
-                                x={currentWaypoint.x * SCALE}
-                                y={currentWaypoint.y * SCALE}
-                                radius={currentWaypoint.radius * SCALE}
+                                x={currentWaypoint.x * config.scale}
+                                y={currentWaypoint.y * config.scale}
+                                radius={currentWaypoint.radius * config.scale}
                                 stroke="purple"
                                 strokeWidth={2}
                                 dash={[10, 5]}
@@ -489,10 +569,10 @@ const App = () => {
                         {exits.map((e, i) => (
                             <Rect
                                 key={`exit-${i}`}
-                                x={e.x * SCALE}
-                                y={e.y * SCALE}
-                                width={e.width * SCALE}
-                                height={e.height * SCALE}
+                                x={e.x * config.scale}
+                                y={e.y * config.scale}
+                                width={e.width * config.scale}
+                                height={e.height * config.scale}
                                 stroke="green"
                                 strokeWidth={2}
                                 fill="rgba(0, 255, 0, 0.2)"
@@ -507,10 +587,10 @@ const App = () => {
                         {/* Current Exit */}
                         {currentExit && (
                             <Rect
-                                x={currentExit.x * SCALE}
-                                y={currentExit.y * SCALE}
-                                width={currentExit.width * SCALE}
-                                height={currentExit.height * SCALE}
+                                x={currentExit.x * config.scale}
+                                y={currentExit.y * config.scale}
+                                width={currentExit.width * config.scale}
+                                height={currentExit.height * config.scale}
                                 stroke="green"
                                 strokeWidth={2}
                                 dash={[10, 5]}
@@ -522,10 +602,10 @@ const App = () => {
                         {distributions.map((d, i) => (
                             <Rect
                                 key={`dist-${i}`}
-                                x={d.x * SCALE}
-                                y={d.y * SCALE}
-                                width={d.width * SCALE}
-                                height={d.height * SCALE}
+                                x={d.x * config.scale}
+                                y={d.y * config.scale}
+                                width={d.width * config.scale}
+                                height={d.height * config.scale}
                                 stroke="orange"
                                 strokeWidth={2}
                                 fill="rgba(255, 165, 0, 0.2)"
@@ -539,10 +619,10 @@ const App = () => {
                         {/* Current Distribution */}
                         {currentRect && (
                             <Rect
-                                x={currentRect.x * SCALE}
-                                y={currentRect.y * SCALE}
-                                width={currentRect.width * SCALE}
-                                height={currentRect.height * SCALE}
+                                x={currentRect.x * config.scale}
+                                y={currentRect.y * config.scale}
+                                width={currentRect.width * config.scale}
+                                height={currentRect.height * config.scale}
                                 stroke="orange"
                                 strokeWidth={2}
                                 dash={[10, 5]}
@@ -564,8 +644,8 @@ const App = () => {
                         {currentConnectionPath?.tempX && (
                             <Line
                                 points={[
-                                    currentConnectionPath.x * SCALE,
-                                    currentConnectionPath.y * SCALE,
+                                    currentConnectionPath.x * config.scale,
+                                    currentConnectionPath.y * config.scale,
                                     currentConnectionPath.tempX,
                                     currentConnectionPath.tempY,
                                 ]}
