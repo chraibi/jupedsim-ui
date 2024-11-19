@@ -3,7 +3,7 @@ import { Stage, Layer, Line, Rect, Circle } from "react-konva";
 
 const App = () => {
     const SCALE = 50; // 1 meter = 50 pixels
-
+    const GRID_SPACING = 50; // Grid line spacing in pixels
     const [tool, setTool] = useState("geometry");
     const [geometry, setGeometry] = useState([]);
     const [exits, setExits] = useState([]);
@@ -17,7 +17,7 @@ const App = () => {
     const [currentExit, setCurrentExit] = useState(null);
     const [currentWaypoint, setCurrentWaypoint] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
-
+    const [showGrid, setShowGrid] = useState(true);
     const generateId = (prefix) => `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
     // Esc key handler
     useEffect(() => {
@@ -267,6 +267,41 @@ const App = () => {
             );
         },
     };
+
+
+
+    const renderGrid = () => {
+        const lines = [];
+        const width = window.innerWidth * 0.75; // Adjust for canvas size
+        const height = window.innerHeight;
+
+        // Vertical lines
+        for (let x = 0; x <= width; x += GRID_SPACING) {
+            lines.push(
+                <Line
+                    key={`v-${x}`}
+                    points={[x, 0, x, height]}
+                    stroke="#e0e0e0"
+                    strokeWidth={1}
+                />
+            );
+        }
+
+        // Horizontal lines
+        for (let y = 0; y <= height; y += GRID_SPACING) {
+            lines.push(
+                <Line
+                    key={`h-${y}`}
+                    points={[0, y, width, y]}
+                    stroke="#e0e0e0"
+                    strokeWidth={1}
+                />
+            );
+        }
+
+        return lines;
+    };
+
     
     return (
         <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
@@ -278,6 +313,7 @@ const App = () => {
                 <button onClick={() => setTool("distribution")}>Distribution Tool</button>
                 <button onClick={() => setTool("connection")}>Connection Tool</button>
                 <button onClick={() => setTool("delete")}>Delete Tool</button>
+                <button onClick={() => setShowGrid(!showGrid)}> {showGrid ? "Hide Grid": "Show Gird"}  </button>
                 <button onClick={exportData} style={{ backgroundColor: "#4CAF50", color: "white" }}>
                     Export Data
                 </button>
@@ -298,23 +334,7 @@ const App = () => {
                     style={{ background: "#ddd" }}
                 >
                     <Layer>
-                        {/* Grid */}
-                        {[...Array(Math.ceil(window.innerWidth / SCALE))].map((_, i) => (
-                            <Line
-                                key={`v-line-${i}`}
-                                points={[i * SCALE, 0, i * SCALE, window.innerHeight]}
-                                stroke="#ccc"
-                                strokeWidth={0.5}
-                            />
-                        ))}
-                        {[...Array(Math.ceil(window.innerHeight / SCALE))].map((_, i) => (
-                            <Line
-                                key={`h-line-${i}`}
-                                points={[0, i * SCALE, window.innerWidth, i * SCALE]}
-                                stroke="#ccc"
-                                strokeWidth={0.5}
-                            />
-                        ))}
+                        {showGrid && renderGrid()}                        
                         {/* Waypoints */}
                         {waypoints.map((w, i) => (
                             <Circle
