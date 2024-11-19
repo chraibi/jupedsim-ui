@@ -512,6 +512,9 @@ const App = () => {
                     <button style={buttonStyle('delete')} onClick={() => setTool('delete')}>
                         Delete Tool
                     </button>
+                    <button   style={buttonStyle('export')} onClick={exportData}>
+                    Export Data
+                </button>
                 </div>
                 <div>
                     <label>
