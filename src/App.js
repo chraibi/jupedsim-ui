@@ -260,11 +260,13 @@ const App = () => {
             setIsDragging(false); // Reset dragging flag
             const pos = e.target.position();
             const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+            const updatedWaypoint = { ...waypoints[i], x: scaledPos.x, y: scaledPos.y };
             setWaypoints(
                 waypoints.map((wp, index) =>
                     index === i ? { ...wp, x: scaledPos.x, y: scaledPos.y } : wp
                 )
             );
+            updateConnections(updatedWaypoint);
         },
     };
 
@@ -302,7 +304,37 @@ const App = () => {
         return lines;
     };
 
-    
+    const updateConnections = (updatedElement) => {
+        setConnections((prevConnections) =>
+            prevConnections.map((connection) => {
+                if (connection.from === updatedElement.id) {
+                    // Update the starting point of the connection
+                    return {
+                        ...connection,
+                        points: [
+                            updatedElement.x * SCALE,
+                            updatedElement.y * SCALE,
+                            connection.points[2],
+                            connection.points[3],
+                        ],
+                    };
+                } else if (connection.to === updatedElement.id) {
+                    // Update the ending point of the connection
+                    return {
+                        ...connection,
+                        points: [
+                            connection.points[0],
+                            connection.points[1],
+                            updatedElement.x * SCALE,
+                            updatedElement.y * SCALE,
+                        ],
+                    };
+                }
+                return connection;
+            })
+        );
+    };
+
     return (
         <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
             <div style={{ flex: 1, padding: "20px", backgroundColor: "#f4f4f9" }}>
@@ -420,6 +452,11 @@ const App = () => {
                                     setIsDragging(false);
                                     const pos = e.target.position();
                                     const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+                                    const updatedExit = {
+                                        ...exits[i],
+                                        x: scaledPos.x - exits[i].width / 2,
+                                        y: scaledPos.y - exits[i].height / 2,
+                                    };
                                     setExits(
                                         exits.map((exit, index) =>
                                             index === i
@@ -431,6 +468,7 @@ const App = () => {
                                             : exit
                                         )
                                     );
+                                    updateConnections(updatedExit);
                                 }}
                             />
                         ))}
@@ -466,6 +504,11 @@ const App = () => {
                                     setIsDragging(false);
                                     const pos = e.target.position();
                                     const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+                                    const updatedDistribution = {
+                                        ...distributions[i],
+                                        x: scaledPos.x - distributions[i].width / 2,
+                                        y: scaledPos.y - distributions[i].height / 2,
+                                    };
                                     setDistributions(
                                         distributions.map((dist, index) =>
                                             index === i
@@ -477,6 +520,7 @@ const App = () => {
                                             : dist
                                         )
                                     );
+                                    updateConnections(updatedDistribution);
                                 }}
                             />
                         ))}
