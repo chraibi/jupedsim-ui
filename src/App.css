@@ -24,6 +24,12 @@
   color: white;
 }
 
+.small-text {
+  font-size: 12px;
+  color: #666; /* Optional for lighter text */
+}
+
+
 .App-link {
   color: #61dafb;
 }

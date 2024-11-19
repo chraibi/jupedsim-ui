@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect, Circle } from "react-konva";
+import './App.css';
 
 const App = () => {
     
@@ -378,93 +379,80 @@ const App = () => {
         },
     };
 
-    const ConfigPanel = () => (
-  <div
-    style={{
-      padding: '10px',
-      backgroundColor: '#f0f0f0',
-      borderRight: '1px solid #ccc',
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '20px',
-    }}
-  >
-    <h3>Simulation Config</h3>
+    const ConfigPanel = () => {
+        const buttonStyle = (toolName) => ({
+            padding: '10px 15px',
+            margin: '5px',
+            border: '1px solid #ccc',
+            backgroundColor: tool === toolName ? '#4CAF50' : '#f0f0f0', // Highlight active tool
+            color: tool === toolName ? 'white' : 'black',
+            cursor: 'pointer',
+            borderRadius: '4px',
+            outline: 'none',
+        });
 
-    {/* Grid Config Section */}
-    <div style={{ borderBottom: '1px solid #ccc', paddingBottom: '10px' }}>
-      <h4>Grid Settings</h4>
-      <div>
-        <label>
-          Grid Spacing (pixels):
-          <input
-            type="number"
-            value={config.gridSpacing}
-            onChange={(e) =>
-              setConfig((prev) => ({
-                ...prev,
-                gridSpacing: Number(e.target.value),
-              }))
-            }
-          />
-        </label>
-      </div>
-      <div>
-        <label>
-          Snap Threshold (pixels):
-          <input
-            type="number"
-            value={config.snapThreshold}
-            onChange={(e) =>
-              setConfig((prev) => ({
-                ...prev,
-                snapThreshold: Number(e.target.value),
-              }))
-            }
-          />
-        </label>
-      </div>
-      <div>
-        <label>
-          Show Grid:
-          <input
-            type="checkbox"
-            checked={config.showGrid}
-            onChange={(e) =>
-              setConfig((prev) => ({
-                ...prev,
-                showGrid: e.target.checked,
-              }))
-            }
-          />
-        </label>
-      </div>
-    </div>
+        return (
+            <div
+                style={{
+                    padding: '10px',
+                    backgroundColor: '#f0f0f0',
+                    borderRight: '1px solid #ccc',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '20px',
+                }}
+            >
+                <h3>Simulation Config</h3>
 
-    {/* History Actions Section */}
-
-    {/* Tools Section */}
-    <div>
-      <h4>Tools</h4>
-      <button onClick={() => setTool('geometry')}>Geometry Tool</button>
-      <button onClick={() => setTool('waypoint')}>Waypoint Tool</button>
-      <button onClick={() => setTool('exit')}>Exit Tool</button>
-      <button onClick={() => setTool('distribution')}>Distribution Tool</button>
-      <button onClick={() => setTool('connection')}>Connection Tool</button>
-      <button onClick={() => setTool('delete')}>Delete Tool</button>
-    </div>
-                  <div>
-                <p><strong>Current Tool:</strong> {tool || "None"}</p>
-                {mousePosition && (
-                    <p>
-                        ({mousePosition.x.toFixed(2)} m, {mousePosition.y.toFixed(2)} m)
-                    </p>
-                )}
+                {/* Tools Section */}
+                <div style={{ borderBottom: '1px solid #ccc', paddingBottom: '10px' }}>
+                    <h4>Tools</h4>
+                    <button style={buttonStyle('geometry')} onClick={() => setTool('geometry')}>
+                        Geometry Tool
+                    </button>
+                    <button style={buttonStyle('waypoint')} onClick={() => setTool('waypoint')}>
+                        Waypoint Tool
+                    </button>
+                    <button style={buttonStyle('exit')} onClick={() => setTool('exit')}>
+                        Exit Tool
+                    </button>
+                    <button style={buttonStyle('distribution')} onClick={() => setTool('distribution')}>
+                        Distribution Tool
+                    </button>
+                    <button style={buttonStyle('connection')} onClick={() => setTool('connection')}>
+                        Connection Tool
+                    </button>
+                    <button style={buttonStyle('delete')} onClick={() => setTool('delete')}>
+                        Delete Tool
+                    </button>
+                </div>
+                <div>
+                    <label>
+                        Show Grid:
+                        <input
+                            type="checkbox"
+                            checked={config.showGrid}
+                            onChange={(e) =>
+                                setConfig((prev) => ({
+                                    ...prev,
+                                    showGrid: e.target.checked,
+                                }))
+                            }
+                        />
+                    </label>
+                </div>
+                <div className="small-text">
+                    {mousePosition && (
+                        <p>
+                            ({mousePosition.x.toFixed(2)} m, {mousePosition.y.toFixed(2)} m)
+                        </p>
+                    )}
+                </div>
             </div>
-
-  </div>
-);
+            
+        );
+    };
 
    
 
