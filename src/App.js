@@ -16,20 +16,18 @@ const App = () => {
     const [currentRect, setCurrentRect] = useState(null);
     const [currentExit, setCurrentExit] = useState(null);
     const [currentWaypoint, setCurrentWaypoint] = useState(null);
+    const [isDragging, setIsDragging] = useState(false);
 
-    const generateIdw = () => `w-${Math.random().toString(36).substr(2, 9)}`;
-    const generateIdd = () => `d-${Math.random().toString(36).substr(2, 9)}`;
-    const generateIde = () => `e-${Math.random().toString(36).substr(2, 9)}`;
-    const generateIdg = () => `g-${Math.random().toString(36).substr(2, 9)}`;
+    const generateId = (prefix) => `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
 
     const handleMouseDown = (e) => {
+        if (isDragging) return; // Skip if dragging an object
         const pos = e.target.getStage().getPointerPosition();
         const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+
         if (tool === "delete") {
             const elementToDelete = findElementByPoint(scaledPos.x, scaledPos.y);
-
             if (elementToDelete) {
-                // Check and remove the element from its corresponding state
                 if (elementToDelete.type === "geometry") {
                     setGeometry(geometry.filter((g) => g.id !== elementToDelete.id));
                 } else if (elementToDelete.type === "waypoint") {
@@ -39,128 +37,107 @@ const App = () => {
                 } else if (elementToDelete.type === "distribution") {
                     setDistributions(distributions.filter((d) => d.id !== elementToDelete.id));
                 }
-                setConnections(connections.filter((c) => c.from !== elementToDelete.id && c.to !== elementToDelete.id));
-                
-                
+                setConnections(
+                    connections.filter((c) => c.from !== elementToDelete.id && c.to !== elementToDelete.id)
+                );
             }
-            return; // Exit early to avoid other tool behaviors
+            return;
         }
         if (tool === "geometry") {
             if (!currentGeometryPoints) {
-                // Start a new geometry shape
+                // Start a new geometry
                 setCurrentGeometryPoints([scaledPos.x, scaledPos.y]);
             } else {
-                // Add new points to the geometry
+                // Add new points on click
                 setCurrentGeometryPoints([...currentGeometryPoints, scaledPos.x, scaledPos.y]);
             }
-        } else
-            if (tool === "waypoint") {
-                if (!currentWaypoint) {
-                    // Start drawing the circle
-                    setCurrentWaypoint({ x: scaledPos.x, y: scaledPos.y, radius: 0 });
-                } else {
-                    // Finalize the circle
-                    const radius = Math.sqrt(
-                        (scaledPos.x - currentWaypoint.x) ** 2 +
-                            (scaledPos.y - currentWaypoint.y) ** 2
-                    );
-                    setWaypoints([...waypoints, { id: generateIdw(), x: currentWaypoint.x, y: currentWaypoint.y, radius }]);
-                    setCurrentWaypoint(null); // Reset for the next circle
-                }
-                return;
-                
+        }
+         else if (tool === "waypoint") {
+            if (!currentWaypoint) {
+                setCurrentWaypoint({ x: scaledPos.x, y: scaledPos.y, radius: 0 });
+            } else {
+                const radius = Math.sqrt(
+                    (scaledPos.x - currentWaypoint.x) ** 2 + (scaledPos.y - currentWaypoint.y) ** 2
+                );
+                setWaypoints([
+                    ...waypoints,
+                    { id: generateId("w"), x: currentWaypoint.x, y: currentWaypoint.y, radius },
+                ]);
+                setCurrentWaypoint(null);
             }
-        else if (tool === "exit" || tool === "distribution") {
-            const rect = { x: scaledPos.x - 0.5, y: scaledPos.y - 0.2, width: 1, height: 0.4 };
-            
-            if (tool === "exit") {
-                if (!currentExit) {
-                    // Start drawing the exit rectangle
-                    setCurrentExit({ x: scaledPos.x, y: scaledPos.y, width: 0, height: 0 });
-                } else {
-                    // Finalize the exit rectangle
-                    const rect = {
-                        x: Math.min(currentExit.x, scaledPos.x),
-                        y: Math.min(currentExit.y, scaledPos.y),
-                        width: Math.abs(scaledPos.x - currentExit.x),
-                        height: Math.abs(scaledPos.y - currentExit.y),
-                    };
-                    setExits([...exits, { id: generateIde(), ...rect }]);
-                    setCurrentExit(null); // Reset for the next rectangle
-                }
-                return;
+        } else if (tool === "exit") {
+            if (!currentExit) {
+                setCurrentExit({ x: scaledPos.x, y: scaledPos.y, width: 0, height: 0 });
+            } else {
+                const rect = {
+                    x: Math.min(currentExit.x, scaledPos.x),
+                    y: Math.min(currentExit.y, scaledPos.y),
+                    width: Math.abs(scaledPos.x - currentExit.x),
+                    height: Math.abs(scaledPos.y - currentExit.y),
+                };
+                setExits([...exits, { id: generateId("e"), ...rect }]);
+                setCurrentExit(null);
             }
-            if (tool === "distribution")
-                if (!currentRect) {
-                    // Start drawing the rectangle
-                    setCurrentRect({ x: scaledPos.x, y: scaledPos.y, width: 0, height: 0 });
-                } else {
-                    // Finalize the rectangle
-                    const rect = {
-                        x: Math.min(currentRect.x, scaledPos.x),
-                        y: Math.min(currentRect.y, scaledPos.y),
-                        width: Math.abs(scaledPos.x - currentRect.x),
-                        height: Math.abs(scaledPos.y - currentRect.y),
-                    };
-                    setDistributions([...distributions, { id: generateIdd(), ...rect }]);
-                    setCurrentRect(null); // Reset for the next rectangle
-                }
+        } else if (tool === "distribution") {
+            if (!currentRect) {
+                setCurrentRect({ x: scaledPos.x, y: scaledPos.y, width: 0, height: 0 });
+            } else {
+                const rect = {
+                    x: Math.min(currentRect.x, scaledPos.x),
+                    y: Math.min(currentRect.y, scaledPos.y),
+                    width: Math.abs(scaledPos.x - currentRect.x),
+                    height: Math.abs(scaledPos.y - currentRect.y),
+                };
+                setDistributions([...distributions, { id: generateId("d"), ...rect }]);
+                setCurrentRect(null);
+            }
         } else if (tool === "connection") {
             const clickedElement = findElementByPoint(scaledPos.x, scaledPos.y);
-
-            if (!clickedElement) {
-                console.log("No element found at the clicked position.");
-                return;
-            }
-
+            if (!clickedElement) return;
             if (!currentConnectionPath) {
-                // Start a new connection
                 setCurrentConnectionPath({ id: clickedElement.id, x: clickedElement.x, y: clickedElement.y });
             } else {
-                // Complete the connection
                 const startElement = currentConnectionPath;
                 const endElement = clickedElement;
-
-                if (startElement.id === endElement.id) {
-                    console.error("Cannot connect an element to itself.");
-                    setCurrentConnectionPath(null);
-                    return;
+                if (startElement.id !== endElement.id) {
+                    setConnections([
+                        ...connections,
+                        {
+                            from: startElement.id,
+                            to: endElement.id,
+                            points: [
+                                startElement.x * SCALE,
+                                startElement.y * SCALE,
+                                endElement.x * SCALE,
+                                endElement.y * SCALE,
+                            ],
+                        },
+                    ]);
                 }
-
-                // Add the new connection
-                setConnections([
-                    ...connections,
-                    {
-                        from: startElement.id,
-                        to: endElement.id,
-                        points: [
-                            startElement.x * SCALE,
-                            startElement.y * SCALE,
-                            endElement.x * SCALE,
-                            endElement.y * SCALE,
-                        ],
-                    },
-                ]);
-                setCurrentConnectionPath(null); // Reset for the next connection
+                setCurrentConnectionPath(null);
             }
         }
-
     };
 
     const handleMouseMove = (e) => {
         const pos = e.target.getStage().getPointerPosition();
         const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+        setMousePosition(scaledPos);
+        if (tool === "geometry" && currentGeometryPoints) {
+            // Only update mousePosition for the dashed line
+            setMousePosition(scaledPos);
+        }
+
+        
+
         if (tool === "waypoint" && currentWaypoint) {
-            // Update the radius dynamically
             const radius = Math.sqrt(
-                (scaledPos.x - currentWaypoint.x) ** 2 +
-                    (scaledPos.y - currentWaypoint.y) ** 2
+                (scaledPos.x - currentWaypoint.x) ** 2 + (scaledPos.y - currentWaypoint.y) ** 2
             );
             setCurrentWaypoint({ ...currentWaypoint, radius });
         }
 
         if (tool === "exit" && currentExit) {
-            // Update the rectangle dynamically
             setCurrentExit({
                 x: currentExit.x,
                 y: currentExit.y,
@@ -168,8 +145,8 @@ const App = () => {
                 height: scaledPos.y - currentExit.y,
             });
         }
+
         if (tool === "distribution" && currentRect) {
-            // Update the rectangle dynamically
             setCurrentRect({
                 x: currentRect.x,
                 y: currentRect.y,
@@ -177,6 +154,7 @@ const App = () => {
                 height: scaledPos.y - currentRect.y,
             });
         }
+
         if (tool === "connection" && currentConnectionPath) {
             setCurrentConnectionPath({
                 ...currentConnectionPath,
@@ -184,81 +162,56 @@ const App = () => {
                 tempY: scaledPos.y * SCALE,
             });
         }
-
-        setMousePosition(scaledPos); // Update only the mouse position
-    };
-    const handleDoubleClick = () => {
-        if (tool === "geometry" && currentGeometryPoints) {
-            if (currentGeometryPoints.length >= 4) {
-                // Save the completed polygon
-                setGeometry([
-                    ...geometry,
-                    { id: generateIdg(), points: currentGeometryPoints },
-                ]);
-            }
-            // Reset the state for the next shape
-            setCurrentGeometryPoints(null);
-            setMousePosition(null);
-        }
     };
 
     
-    const isPointOnLineSegment = (px, py, x1, y1, x2, y2, tolerance = 0.1) => {
-        const distance = Math.abs(
-            (y2 - y1) * px - (x2 - x1) * py + x2 * y1 - y2 * x1
-        ) / Math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2);
+const handleDoubleClick = () => {
+    if (tool === "geometry" && currentGeometryPoints) {
+        if (currentGeometryPoints.length >= 4) {
+            // Save the finalized polygon
+            setGeometry([
+                ...geometry,
+                { id: generateId("g"), points: currentGeometryPoints },
+            ]);
+        }
+        setCurrentGeometryPoints(null); // Reset for the next shape
+        setMousePosition(null); // Clear the dashed line
+    }
+};
 
-        // Check if the point is within tolerance of the line and within segment bounds
-        return distance <= tolerance &&
-            px >= Math.min(x1, x2) && px <= Math.max(x1, x2) &&
-            py >= Math.min(y1, y2) && py <= Math.max(y1, y2);
+    const findElementByPoint = (x, y) => {
+        for (const g of geometry) {
+            if (isPointInPolygon(x, y, g.points)) return { id: g.id, type: "geometry" };
+        }
+        for (const w of waypoints) {
+            if (isPointInCircle(x, y, w.x, w.y, w.radius)) return { id: w.id, type: "waypoint", x: w.x, y: w.y };
+        }
+        for (const e of exits) {
+            if (x >= e.x && x <= e.x + e.width && y >= e.y && y <= e.y + e.height) {
+                return { id: e.id, type: "exit", x: e.x + e.width / 2, y: e.y + e.height / 2 };
+            }
+        }
+        for (const d of distributions) {
+            if (x >= d.x && x <= d.x + d.width && y >= d.y && y <= d.y + d.height) {
+                return { id: d.id, type: "distribution", x: d.x + d.width / 2, y: d.y + d.height / 2 };
+            }
+        }
+        return null;
     };
 
     const isPointInPolygon = (x, y, points) => {
         let isInside = false;
         const n = points.length / 2;
-
         for (let i = 0, j = n - 1; i < n; j = i++) {
             const xi = points[i * 2];
             const yi = points[i * 2 + 1];
             const xj = points[j * 2];
             const yj = points[j * 2 + 1];
-
             const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
             if (intersect) isInside = !isInside;
         }
-
         return isInside;
     };
-  
-    const findElementByPoint = (x, y) => {
-        for (const g of geometry) {
-            if (isPointInPolygon(x, y, g.points)) {
-                return { id: g.id, type: "geometry", x: x, y: y }; // x and y as clicked position
-            }
-        }
-
-        for (const w of waypoints) {
-            if (isPointInCircle(x, y, w.x, w.y, w.radius)) {
-                return { id: w.id, type: "waypoint", x: w.x, y: w.y };
-            }
-        }
-
-        for (const rect of exits) {
-            if (x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height) {
-                return { id: rect.id, type: "exit", x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-            }
-        }
-
-        for (const rect of distributions) {
-            if (x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height) {
-                return { id: rect.id, type: "distribution", x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-            }
-        }
-
-        return null;
-    };
-
 
     const isPointInCircle = (x, y, cx, cy, radius) => {
         const distanceSquared = (x - cx) ** 2 + (y - cy) ** 2;
@@ -273,7 +226,6 @@ const App = () => {
             distributions: distributions.map((d) => ({ id: d.id, x: d.x, y: d.y, width: d.width, height: d.height })),
             connections: connections.map((c) => ({ from: c.from, to: c.to, points: c.points })),
         };
-
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -283,6 +235,20 @@ const App = () => {
         URL.revokeObjectURL(url);
     };
 
+const waypointsDragHandlers = {
+    onDragStart: () => setIsDragging(true), // Set dragging flag
+    onDragEnd: (e, i) => {
+        setIsDragging(false); // Reset dragging flag
+        const pos = e.target.position();
+        const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+        setWaypoints(
+            waypoints.map((wp, index) =>
+                index === i ? { ...wp, x: scaledPos.x, y: scaledPos.y } : wp
+            )
+        );
+    },
+};
+    
     return (
         <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
             <div style={{ flex: 1, padding: "20px", backgroundColor: "#f4f4f9" }}>
@@ -303,7 +269,6 @@ const App = () => {
                     </p>
                 )}
             </div>
-
             <div style={{ flex: 3 }}>
                 <Stage
                     width={window.innerWidth * 0.75}
@@ -314,6 +279,21 @@ const App = () => {
                     style={{ background: "#ddd" }}
                 >
                     <Layer>
+                        {/* Waypoints */}
+                        {waypoints.map((w, i) => (
+                            <Circle
+                                key={`wp-${i}`}
+                                x={w.x * SCALE}
+                                y={w.y * SCALE}
+                                radius={w.radius * SCALE}
+                                fill="purple"
+                                draggable
+                                onDragStart={waypointsDragHandlers.onDragStart}
+                                onDragEnd={(e) => waypointsDragHandlers.onDragEnd(e, i)}
+                            />
+                        ))}
+
+                        {/* Current Waypoint */}
                         {currentWaypoint && (
                             <Circle
                                 x={currentWaypoint.x * SCALE}
@@ -325,31 +305,9 @@ const App = () => {
                                 fill="rgba(128, 0, 128, 0.2)"
                             />
                         )}
-                        {currentExit && (
-                            <Rect
-                                x={currentExit.x * SCALE}
-                                y={currentExit.y * SCALE}
-                                width={currentExit.width * SCALE}
-                                height={currentExit.height * SCALE}
-                                stroke="green"
-                                strokeWidth={2}
-                                dash={[10, 5]}
-                                fill="rgba(0, 255, 0, 0.2)"
-                            />
-                        )}
-                        {currentRect && (
-                            <Rect
-                                x={currentRect.x * SCALE}
-                                y={currentRect.y * SCALE}
-                                width={currentRect.width * SCALE}
-                                height={currentRect.height * SCALE}
-                                stroke="orange"
-                                strokeWidth={2}
-                                dash={[10, 5]}
-                                fill="rgba(255, 165, 0, 0.2)"
-                            />
-                        )}
-                        {/* Render Completed Geometry */}
+
+                        {/* Geometry */}
+                        
                         {geometry.map((polygon, i) => (
                             <Line
                                 key={`geo-${i}`}
@@ -361,7 +319,7 @@ const App = () => {
                             />
                         ))}
 
-                        {/* Render Current Geometry */}
+                        {/* Current Geometry */}
                         {currentGeometryPoints && (
                             <>
                                 <Line
@@ -389,10 +347,7 @@ const App = () => {
                             </>
                         )}
 
-                        {/* Render Other Elements */}
-                        {waypoints.map((w, i) => (
-                            <Circle key={`wp-${i}`} x={w.x * SCALE} y={w.y * SCALE} radius={w.radius * SCALE} fill="purple" />
-                        ))}
+                        {/* Exits */}
                         {exits.map((e, i) => (
                             <Rect
                                 key={`exit-${i}`}
@@ -403,8 +358,42 @@ const App = () => {
                                 stroke="green"
                                 strokeWidth={2}
                                 fill="rgba(0, 255, 0, 0.2)"
+                                draggable
+                                onDragStart={() => setIsDragging(true)}
+                                onDragEnd={(e) => {
+                                    setIsDragging(false);
+                                    const pos = e.target.position();
+                                    const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+                                    setExits(
+                                        exits.map((exit, index) =>
+                                            index === i
+                                                ? {
+                                                      ...exit,
+                                                      x: scaledPos.x - exit.width / 2,
+                                                      y: scaledPos.y - exit.height / 2,
+                                                  }
+                                                : exit
+                                        )
+                                    );
+                                }}
                             />
                         ))}
+
+                        {/* Current Exit */}
+                        {currentExit && (
+                            <Rect
+                                x={currentExit.x * SCALE}
+                                y={currentExit.y * SCALE}
+                                width={currentExit.width * SCALE}
+                                height={currentExit.height * SCALE}
+                                stroke="green"
+                                strokeWidth={2}
+                                dash={[10, 5]}
+                                fill="rgba(0, 255, 0, 0.2)"
+                            />
+                        )}
+
+                        {/* Distributions */}
                         {distributions.map((d, i) => (
                             <Rect
                                 key={`dist-${i}`}
@@ -415,8 +404,42 @@ const App = () => {
                                 stroke="orange"
                                 strokeWidth={2}
                                 fill="rgba(255, 165, 0, 0.2)"
+                                draggable
+                                onDragStart={() => setIsDragging(true)}
+                                onDragEnd={(e) => {
+                                    setIsDragging(false);
+                                    const pos = e.target.position();
+                                    const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+                                    setDistributions(
+                                        distributions.map((dist, index) =>
+                                            index === i
+                                                ? {
+                                                      ...dist,
+                                                      x: scaledPos.x - dist.width / 2,
+                                                      y: scaledPos.y - dist.height / 2,
+                                                  }
+                                                : dist
+                                        )
+                                    );
+                                }}
                             />
                         ))}
+
+                        {/* Current Distribution */}
+                        {currentRect && (
+                            <Rect
+                                x={currentRect.x * SCALE}
+                                y={currentRect.y * SCALE}
+                                width={currentRect.width * SCALE}
+                                height={currentRect.height * SCALE}
+                                stroke="orange"
+                                strokeWidth={2}
+                                dash={[10, 5]}
+                                fill="rgba(255, 165, 0, 0.2)"
+                            />
+                        )}
+
+                        {/* Connections */}
                         {connections.map((c, i) => (
                             <Line
                                 key={`conn-${i}`}
