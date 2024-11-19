@@ -563,7 +563,7 @@ const App = () => {
                                 fill="rgba(0, 0, 255, 0.2)"
                             />
                         ))}
-                        {alignmentGuides.x && (
+                        {config.showAlignmentGuides && alignmentGuides.x && (
                             <Line
                                 points={[
                                     alignmentGuides.x * config.scale,
@@ -576,7 +576,7 @@ const App = () => {
                                 dash={[10, 5]}
                             />
                         )}
-                        {alignmentGuides.y && (
+                        {config.showAlignmentGuides && alignmentGuides.y && (
                             <Line
                                 points={[
                                     0,
