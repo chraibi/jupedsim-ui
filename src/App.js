@@ -15,6 +15,7 @@ const App = () => {
     const [mousePosition, setMousePosition] = useState(null);
     const [currentRect, setCurrentRect] = useState(null);
     const [currentExit, setCurrentExit] = useState(null);
+    const [currentWaypoint, setCurrentWaypoint] = useState(null);
 
     const generateIdw = () => `w-${Math.random().toString(36).substr(2, 9)}`;
     const generateIdd = () => `d-${Math.random().toString(36).substr(2, 9)}`;
@@ -52,9 +53,24 @@ const App = () => {
                 // Add new points to the geometry
                 setCurrentGeometryPoints([...currentGeometryPoints, scaledPos.x, scaledPos.y]);
             }
-        } else if (tool === "waypoint") {
-            setWaypoints([...waypoints, { id: generateIdw(), x: scaledPos.x, y: scaledPos.y, radius: 0.2 }]);
-        } else if (tool === "exit" || tool === "distribution") {
+        } else
+            if (tool === "waypoint") {
+                if (!currentWaypoint) {
+                    // Start drawing the circle
+                    setCurrentWaypoint({ x: scaledPos.x, y: scaledPos.y, radius: 0 });
+                } else {
+                    // Finalize the circle
+                    const radius = Math.sqrt(
+                        (scaledPos.x - currentWaypoint.x) ** 2 +
+                            (scaledPos.y - currentWaypoint.y) ** 2
+                    );
+                    setWaypoints([...waypoints, { id: generateIdw(), x: currentWaypoint.x, y: currentWaypoint.y, radius }]);
+                    setCurrentWaypoint(null); // Reset for the next circle
+                }
+                return;
+                
+            }
+        else if (tool === "exit" || tool === "distribution") {
             const rect = { x: scaledPos.x - 0.5, y: scaledPos.y - 0.2, width: 1, height: 0.4 };
             
             if (tool === "exit") {
@@ -134,6 +150,15 @@ const App = () => {
     const handleMouseMove = (e) => {
         const pos = e.target.getStage().getPointerPosition();
         const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+        if (tool === "waypoint" && currentWaypoint) {
+            // Update the radius dynamically
+            const radius = Math.sqrt(
+                (scaledPos.x - currentWaypoint.x) ** 2 +
+                    (scaledPos.y - currentWaypoint.y) ** 2
+            );
+            setCurrentWaypoint({ ...currentWaypoint, radius });
+        }
+
         if (tool === "exit" && currentExit) {
             // Update the rectangle dynamically
             setCurrentExit({
@@ -289,6 +314,17 @@ const App = () => {
                     style={{ background: "#ddd" }}
                 >
                     <Layer>
+                        {currentWaypoint && (
+                            <Circle
+                                x={currentWaypoint.x * SCALE}
+                                y={currentWaypoint.y * SCALE}
+                                radius={currentWaypoint.radius * SCALE}
+                                stroke="purple"
+                                strokeWidth={2}
+                                dash={[10, 5]}
+                                fill="rgba(128, 0, 128, 0.2)"
+                            />
+                        )}
                         {currentExit && (
                             <Rect
                                 x={currentExit.x * SCALE}
