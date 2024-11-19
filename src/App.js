@@ -14,6 +14,8 @@ const App = () => {
     const [currentConnectionPath, setCurrentConnectionPath] = useState(null);
     const [mousePosition, setMousePosition] = useState(null);
     const [currentRect, setCurrentRect] = useState(null);
+    const [currentExit, setCurrentExit] = useState(null);
+
     const generateIdw = () => `w-${Math.random().toString(36).substr(2, 9)}`;
     const generateIdd = () => `d-${Math.random().toString(36).substr(2, 9)}`;
     const generateIde = () => `e-${Math.random().toString(36).substr(2, 9)}`;
@@ -54,7 +56,24 @@ const App = () => {
             setWaypoints([...waypoints, { id: generateIdw(), x: scaledPos.x, y: scaledPos.y, radius: 0.2 }]);
         } else if (tool === "exit" || tool === "distribution") {
             const rect = { x: scaledPos.x - 0.5, y: scaledPos.y - 0.2, width: 1, height: 0.4 };
-            if (tool === "exit") setExits([...exits, { id: generateIde(), ...rect }]);
+            
+            if (tool === "exit") {
+                if (!currentExit) {
+                    // Start drawing the exit rectangle
+                    setCurrentExit({ x: scaledPos.x, y: scaledPos.y, width: 0, height: 0 });
+                } else {
+                    // Finalize the exit rectangle
+                    const rect = {
+                        x: Math.min(currentExit.x, scaledPos.x),
+                        y: Math.min(currentExit.y, scaledPos.y),
+                        width: Math.abs(scaledPos.x - currentExit.x),
+                        height: Math.abs(scaledPos.y - currentExit.y),
+                    };
+                    setExits([...exits, { id: generateIde(), ...rect }]);
+                    setCurrentExit(null); // Reset for the next rectangle
+                }
+                return;
+            }
             if (tool === "distribution")
                 if (!currentRect) {
                     // Start drawing the rectangle
@@ -71,50 +90,59 @@ const App = () => {
                     setCurrentRect(null); // Reset for the next rectangle
                 }
         } else if (tool === "connection") {
-                const clickedElement = findElementByPoint(scaledPos.x, scaledPos.y);
+            const clickedElement = findElementByPoint(scaledPos.x, scaledPos.y);
 
-                if (!clickedElement) {
-                    console.log("No element found at the clicked position.");
+            if (!clickedElement) {
+                console.log("No element found at the clicked position.");
+                return;
+            }
+
+            if (!currentConnectionPath) {
+                // Start a new connection
+                setCurrentConnectionPath({ id: clickedElement.id, x: clickedElement.x, y: clickedElement.y });
+            } else {
+                // Complete the connection
+                const startElement = currentConnectionPath;
+                const endElement = clickedElement;
+
+                if (startElement.id === endElement.id) {
+                    console.error("Cannot connect an element to itself.");
+                    setCurrentConnectionPath(null);
                     return;
                 }
 
-                if (!currentConnectionPath) {
-                    // Start a new connection
-                    setCurrentConnectionPath({ id: clickedElement.id, x: clickedElement.x, y: clickedElement.y });
-                } else {
-                    // Complete the connection
-                    const startElement = currentConnectionPath;
-                    const endElement = clickedElement;
-
-                    if (startElement.id === endElement.id) {
-                        console.error("Cannot connect an element to itself.");
-                        setCurrentConnectionPath(null);
-                        return;
-                    }
-
-                    // Add the new connection
-                    setConnections([
-                        ...connections,
-                        {
-                            from: startElement.id,
-                            to: endElement.id,
-                            points: [
-                                startElement.x * SCALE,
-                                startElement.y * SCALE,
-                                endElement.x * SCALE,
-                                endElement.y * SCALE,
-                            ],
-                        },
-                    ]);
-                    setCurrentConnectionPath(null); // Reset for the next connection
-                }
+                // Add the new connection
+                setConnections([
+                    ...connections,
+                    {
+                        from: startElement.id,
+                        to: endElement.id,
+                        points: [
+                            startElement.x * SCALE,
+                            startElement.y * SCALE,
+                            endElement.x * SCALE,
+                            endElement.y * SCALE,
+                        ],
+                    },
+                ]);
+                setCurrentConnectionPath(null); // Reset for the next connection
             }
+        }
 
     };
 
     const handleMouseMove = (e) => {
         const pos = e.target.getStage().getPointerPosition();
         const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+        if (tool === "exit" && currentExit) {
+            // Update the rectangle dynamically
+            setCurrentExit({
+                x: currentExit.x,
+                y: currentExit.y,
+                width: scaledPos.x - currentExit.x,
+                height: scaledPos.y - currentExit.y,
+            });
+        }
         if (tool === "distribution" && currentRect) {
             // Update the rectangle dynamically
             setCurrentRect({
@@ -261,6 +289,18 @@ const App = () => {
                     style={{ background: "#ddd" }}
                 >
                     <Layer>
+                        {currentExit && (
+                            <Rect
+                                x={currentExit.x * SCALE}
+                                y={currentExit.y * SCALE}
+                                width={currentExit.width * SCALE}
+                                height={currentExit.height * SCALE}
+                                stroke="green"
+                                strokeWidth={2}
+                                dash={[10, 5]}
+                                fill="rgba(0, 255, 0, 0.2)"
+                            />
+                        )}
                         {currentRect && (
                             <Rect
                                 x={currentRect.x * SCALE}
