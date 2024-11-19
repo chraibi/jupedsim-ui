@@ -298,6 +298,23 @@ const App = () => {
                     style={{ background: "#ddd" }}
                 >
                     <Layer>
+                        {/* Grid */}
+                        {[...Array(Math.ceil(window.innerWidth / SCALE))].map((_, i) => (
+                            <Line
+                                key={`v-line-${i}`}
+                                points={[i * SCALE, 0, i * SCALE, window.innerHeight]}
+                                stroke="#ccc"
+                                strokeWidth={0.5}
+                            />
+                        ))}
+                        {[...Array(Math.ceil(window.innerHeight / SCALE))].map((_, i) => (
+                            <Line
+                                key={`h-line-${i}`}
+                                points={[0, i * SCALE, window.innerWidth, i * SCALE]}
+                                stroke="#ccc"
+                                strokeWidth={0.5}
+                            />
+                        ))}
                         {/* Waypoints */}
                         {waypoints.map((w, i) => (
                             <Circle
