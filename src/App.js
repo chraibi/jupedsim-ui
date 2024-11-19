@@ -270,7 +270,7 @@ const App = () => {
                 <Line
                     key={`v-${x}`}
                     points={[x, 0, x, height]}
-                    stroke="#e0e0e0"
+                    stroke="#8d8d8d"
                     strokeWidth={1}
                 />
             );
@@ -282,7 +282,7 @@ const App = () => {
                 <Line
                     key={`h-${y}`}
                     points={[0, y, width, y]}
-                    stroke="#e0e0e0"
+                    stroke="#8d8d8d"
                     strokeWidth={1}
                 />
             );
