@@ -213,24 +213,24 @@ const App = () => {
             px >= Math.min(x1, x2) && px <= Math.max(x1, x2) &&
             py >= Math.min(y1, y2) && py <= Math.max(y1, y2);
     };
-    const isPointInPolygon = (x, y, polygonPoints) => {
+
+    const isPointInPolygon = (x, y, points) => {
         let isInside = false;
-        const n = polygonPoints.length;
+        const n = points.length / 2;
 
         for (let i = 0, j = n - 1; i < n; j = i++) {
-            const xi = polygonPoints[i][0], yi = polygonPoints[i][1];
-            const xj = polygonPoints[j][0], yj = polygonPoints[j][1];
+            const xi = points[i * 2];
+            const yi = points[i * 2 + 1];
+            const xj = points[j * 2];
+            const yj = points[j * 2 + 1];
 
-            const intersect =
-                  yi > y !== yj > y &&
-                  x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-
+            const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
             if (intersect) isInside = !isInside;
         }
 
         return isInside;
     };
-
+  
     const findElementByPoint = (x, y) => {
         for (const g of geometry) {
             if (isPointInPolygon(x, y, g.points)) {
