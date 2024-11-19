@@ -23,6 +23,7 @@ const App = () => {
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === "Escape") {
+                setTool(null);
                 setCurrentGeometryPoints(null);
                 setCurrentWaypoint(null);
                 setCurrentRect(null);
@@ -40,7 +41,7 @@ const App = () => {
         };
     }, []);
     const handleMouseDown = (e) => {
-        if (isDragging) return; // Skip if dragging an object
+        if (isDragging || !tool) return; // Skip if dragging an object
         const pos = e.target.getStage().getPointerPosition();
         const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
 
@@ -256,6 +257,18 @@ const App = () => {
 
     const waypointsDragHandlers = {
         onDragStart: () => setIsDragging(true), // Set dragging flag
+        onDragMove: (e, i) => {
+            setIsDragging(false); // Reset dragging flag
+            const pos = e.target.position();
+            const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+            const updatedWaypoint = { ...waypoints[i], x: scaledPos.x, y: scaledPos.y };
+            setWaypoints(
+                waypoints.map((wp, index) =>
+                    index === i ? { ...wp, x: scaledPos.x, y: scaledPos.y } : wp
+                )
+            );
+            updateConnections(updatedWaypoint);
+        },
         onDragEnd: (e, i) => {
             setIsDragging(false); // Reset dragging flag
             const pos = e.target.position();
@@ -305,36 +318,35 @@ const App = () => {
     };
 
     const updateConnections = (updatedElement) => {
-        setConnections((prevConnections) =>
-            prevConnections.map((connection) => {
-                if (connection.from === updatedElement.id) {
-                    // Update the starting point of the connection
-                    return {
-                        ...connection,
-                        points: [
-                            updatedElement.x * SCALE,
-                            updatedElement.y * SCALE,
-                            connection.points[2],
-                            connection.points[3],
-                        ],
-                    };
-                } else if (connection.to === updatedElement.id) {
-                    // Update the ending point of the connection
-                    return {
-                        ...connection,
-                        points: [
-                            connection.points[0],
-                            connection.points[1],
-                            updatedElement.x * SCALE,
-                            updatedElement.y * SCALE,
-                        ],
-                    };
-                }
-                return connection;
-            })
-        );
-    };
+        const updatedConnections = connections.map((c) => {
+        if (c.from === updatedElement.id) {
+            // Update the source point
+            return {
+                ...c,
+                points: [
+                    updatedElement.x * SCALE,
+                    updatedElement.y * SCALE,
+                    c.points[2],
+                    c.points[3],
+                ],
+            };
+        } else if (c.to === updatedElement.id) {
+            // Update the destination point
+            return {
+                ...c,
+                points: [
+                    c.points[0],
+                    c.points[1],
+                    updatedElement.x * SCALE,
+                    updatedElement.y * SCALE,
+                ],
+            };
+        }
+        return c;
+    });
 
+    setConnections(updatedConnections);
+};
     return (
         <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
             <div style={{ flex: 1, padding: "20px", backgroundColor: "#f4f4f9" }}>
@@ -349,7 +361,7 @@ const App = () => {
                 <button onClick={exportData} style={{ backgroundColor: "#4CAF50", color: "white" }}>
                     Export Data
                 </button>
-                <p><strong>Current Tool:</strong> {tool}</p>
+                <p><strong>Current Tool:</strong> {tool || "None"}</p>
                 {mousePosition && (
                     <p>
                         <strong>Mouse Position:</strong> ({mousePosition.x.toFixed(2)} m, {mousePosition.y.toFixed(2)} m)
@@ -377,6 +389,21 @@ const App = () => {
                                 fill="purple"
                                 draggable
                                 onDragStart={waypointsDragHandlers.onDragStart}
+                                onDragMove={(e) => {
+                                    const pos = e.target.position();
+                                    const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+                                    const updatedWaypoint = { ...w, x: scaledPos.x, y: scaledPos.y };
+
+                                    // Update the waypoint position
+                                    setWaypoints(
+                                        waypoints.map((wp, index) =>
+                                            index === i ? updatedWaypoint : wp
+                                        )
+                                    );
+
+                                    // Update connections live
+                                    updateConnections(updatedWaypoint);
+                                }}
                                 onDragEnd={(e) => waypointsDragHandlers.onDragEnd(e, i)}
                             />
                         ))}
