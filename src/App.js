@@ -319,34 +319,70 @@ const App = () => {
 
     const updateConnections = (updatedElement) => {
         const updatedConnections = connections.map((c) => {
-        if (c.from === updatedElement.id) {
-            // Update the source point
-            return {
-                ...c,
-                points: [
-                    updatedElement.x * SCALE,
-                    updatedElement.y * SCALE,
-                    c.points[2],
-                    c.points[3],
-                ],
-            };
-        } else if (c.to === updatedElement.id) {
-            // Update the destination point
-            return {
-                ...c,
-                points: [
-                    c.points[0],
-                    c.points[1],
-                    updatedElement.x * SCALE,
-                    updatedElement.y * SCALE,
-                ],
-            };
-        }
-        return c;
-    });
+            if (c.from === updatedElement.id) {
+                // Update the source point
+                return {
+                    ...c,
+                    points: [
+                        updatedElement.x * SCALE,
+                        updatedElement.y * SCALE,
+                        c.points[2],
+                        c.points[3],
+                    ],
+                };
+            } else if (c.to === updatedElement.id) {
+                // Update the destination point
+                return {
+                    ...c,
+                    points: [
+                        c.points[0],
+                        c.points[1],
+                        updatedElement.x * SCALE,
+                        updatedElement.y * SCALE,
+                    ],
+                };
+            }
+            return c;
+        });
 
-    setConnections(updatedConnections);
-};
+        setConnections(updatedConnections);
+    };
+    const handleDrag = (updatedElement, i, setElements, elements, e) => {
+        const pos = e.target.position();
+        const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+        const updatedObject = { ...updatedElement, x: scaledPos.x, y: scaledPos.y };
+        setElements(
+            elements.map((element, index) =>
+                index === i ? updatedObject : element
+            )
+        );
+        updateConnections(updatedObject);
+    };
+    const exitsDragHandlers = {
+        onDragStart: () => setIsDragging(true),
+        onDragMove: (e, i) => {
+            setIsDragging(true);
+            handleDrag(exits[i], i, setExits, exits, e);
+        },
+        onDragEnd: (e, i) => {
+            setIsDragging(false);
+            handleDrag(exits[i], i, setExits, exits, e);
+        },
+    };
+
+    const distributionsDragHandlers = {
+        onDragStart: () => setIsDragging(true),
+        onDragMove: (e, i) => {
+            setIsDragging(true);
+            handleDrag(distributions[i], i, setDistributions, distributions, e);
+        },
+        onDragEnd: (e, i) => {
+            setIsDragging(false);
+            handleDrag(distributions[i], i, setDistributions, distributions, e);
+        },
+    };
+
+    
     return (
         <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
             <div style={{ flex: 1, padding: "20px", backgroundColor: "#f4f4f9" }}>
@@ -475,28 +511,9 @@ const App = () => {
                                 fill="rgba(0, 255, 0, 0.2)"
                                 draggable
                                 onDragStart={() => setIsDragging(true)}
-                                onDragEnd={(e) => {
-                                    setIsDragging(false);
-                                    const pos = e.target.position();
-                                    const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
-                                    const updatedExit = {
-                                        ...exits[i],
-                                        x: scaledPos.x - exits[i].width / 2,
-                                        y: scaledPos.y - exits[i].height / 2,
-                                    };
-                                    setExits(
-                                        exits.map((exit, index) =>
-                                            index === i
-                                                ? {
-                                                    ...exit,
-                                                    x: scaledPos.x - exit.width / 2,
-                                                    y: scaledPos.y - exit.height / 2,
-                                                }
-                                            : exit
-                                        )
-                                    );
-                                    updateConnections(updatedExit);
-                                }}
+                                onDragMove={(e) => exitsDragHandlers.onDragMove(e, i)}
+                                onDragEnd={(e) => exitsDragHandlers.onDragEnd(e, i)}
+                                
                             />
                         ))}
 
@@ -527,28 +544,8 @@ const App = () => {
                                 fill="rgba(255, 165, 0, 0.2)"
                                 draggable
                                 onDragStart={() => setIsDragging(true)}
-                                onDragEnd={(e) => {
-                                    setIsDragging(false);
-                                    const pos = e.target.position();
-                                    const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
-                                    const updatedDistribution = {
-                                        ...distributions[i],
-                                        x: scaledPos.x - distributions[i].width / 2,
-                                        y: scaledPos.y - distributions[i].height / 2,
-                                    };
-                                    setDistributions(
-                                        distributions.map((dist, index) =>
-                                            index === i
-                                                ? {
-                                                    ...dist,
-                                                    x: scaledPos.x - dist.width / 2,
-                                                    y: scaledPos.y - dist.height / 2,
-                                                }
-                                            : dist
-                                        )
-                                    );
-                                    updateConnections(updatedDistribution);
-                                }}
+                                onDragMove={(e) => distributionsDragHandlers.onDragMove(e, i)}
+                                onDragEnd={(e) => distributionsDragHandlers.onDragEnd(e, i)}
                             />
                         ))}
 
