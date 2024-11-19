@@ -9,6 +9,8 @@ const App = () => {
         gridSpacing: 50,
         showGrid: true,
         scale: 10,
+        showAlignmentGuides: true,
+        snapThreshold: 10,
     });
     const [tool, setTool] = useState("geometry");
     const [geometry, setGeometry] = useState([]);
@@ -23,7 +25,7 @@ const App = () => {
     const [currentExit, setCurrentExit] = useState(null);
     const [currentWaypoint, setCurrentWaypoint] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
-
+    const [alignmentGuides, setAlignmentGuides] = useState({ x: null, y: null });
     const generateId = (prefix) => `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
     // Esc key handler
     useEffect(() => {
@@ -46,6 +48,36 @@ const App = () => {
             document.removeEventListener("keydown", handleKeyDown);
         };
     }, []);
+    const findNearestSnapPoint = (pos) => {
+        const snappedX = Math.round(pos.x / config.gridSpacing) * config.gridSpacing;
+        const snappedY = Math.round(pos.y / config.gridSpacing) * config.gridSpacing;
+
+        if (
+            Math.abs(pos.x - snappedX) <= config.snapThreshold &&
+                Math.abs(pos.y - snappedY) <= config.snapThreshold
+        ) {
+            return { x: snappedX, y: snappedY };
+        }
+        return pos;
+    };
+
+    const findAlignmentGuides = (draggedElement, elements) => {
+        const guides = { x: null, y: null };
+
+        elements.forEach((element) => {
+            if (element.id !== draggedElement.id) {
+                if (Math.abs(element.x - draggedElement.x) < config.snapThreshold) {
+                    guides.x = element.x;
+                }
+                if (Math.abs(element.y - draggedElement.y) < config.snapThreshold) {
+                    guides.y = element.y;
+                }
+            }
+        });
+
+        return guides;
+    };
+
     const handleMouseDown = (e) => {
         if (isDragging || !tool) return; // Skip if dragging an object
         const pos = e.target.getStage().getPointerPosition();
@@ -264,6 +296,23 @@ const App = () => {
 
 
 
+    // const renderOptimizedGrid = () => {
+    //     const lines = [];
+    //     const viewWidth = window.innerWidth / config.;
+    //     const viewHeight = window.innerHeight / config.scale;
+
+    //     // Vertical lines
+    //     for (let x = 0; x <= viewWidth; x += config.gridSpacing) {
+    //         lines.push(<Line key={`v-${x}`} points={[x, 0, x, viewHeight]} stroke="#b3b3b3" strokeWidth={1} />);
+    //     }
+
+    //     // Horizontal lines
+    //     for (let y = 0; y <= viewHeight; y += config.gridSpacing) {
+    //         lines.push(<Line key={`h-${y}`} points={[0, y, viewWidth, y]} stroke="#b3b3b3" strokeWidth={1} />);
+    //     }
+
+    //     return lines;
+    // };
 
     const renderGrid = () => {
         const lines = [];
@@ -332,52 +381,63 @@ const App = () => {
     };
     const handleDrag = (updatedElement, i, setElements, elements, e) => {
         const pos = e.target.position();
-        const scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
+        let scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
+        scaledPos = findNearestSnapPoint(scaledPos);
         const updatedObject = { ...updatedElement, x: scaledPos.x, y: scaledPos.y };
         setElements(
             elements.map((element, index) =>
                 index === i ? updatedObject : element
             )
         );
+
+
+        // Update alignment guides
+        if (config.showAlignmentGuides) {
+            const guides = findAlignmentGuides(updatedObject, elements);
+            setAlignmentGuides(guides); // Show guides dynamically
+        }
         updateConnections(updatedObject);
     };
     
-
-    const exitsDragHandlers = {
+    const handleDragEnd = (e) => {
+        setAlignmentGuides({ x: null, y: null }); // Clear guides
+    };
+    const createDragHandlers = (setElements, elements) => ({
         onDragStart: () => setIsDragging(true),
         onDragMove: (e, i) => {
             setIsDragging(true);
-            handleDrag(exits[i], i, setExits, exits, e);
+            handleDrag(elements[i], i, setElements, elements, e);
         },
         onDragEnd: (e, i) => {
             setIsDragging(false);
-            handleDrag(exits[i], i, setExits, exits, e);
+            handleDrag(elements[i], i, setElements, elements, e);
         },
+    });
+    const exitsDragHandlers = createDragHandlers(setExits, exits);
+    const distributionsDragHandlers = createDragHandlers(setDistributions, distributions);
+    const waypointsDragHandlers = createDragHandlers(setWaypoints, waypoints);
+
+
+    const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
+
+    const handleDragStage = (e) => {
+        const pos = e.target.position();
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        e.target.position({
+            x: clamp(pos.x, -width, width), // Adjust min/max as needed
+            y: clamp(pos.y, -height, height),
+        });
     };
 
-    const distributionsDragHandlers = {
-        onDragStart: () => setIsDragging(true),
-        onDragMove: (e, i) => {
-            setIsDragging(true);
-            handleDrag(distributions[i], i, setDistributions, distributions, e);
-        },
-        onDragEnd: (e, i) => {
-            setIsDragging(false);
-            handleDrag(distributions[i], i, setDistributions, distributions, e);
-        },
-    };
+    const handleWheelZoom = (e) => {
+    e.evt.preventDefault();
+    const zoomBy = 1.05;
+    const newScale = e.evt.deltaY > 0 ? config.scale / zoomBy : config.scale * zoomBy;
+    setConfig((prev) => ({ ...prev, scale: newScale }));
+};
 
-    const waypointsDragHandlers = {
-        onDragStart: () => setIsDragging(true), // Set dragging flag
-        onDragMove: (e, i) => {
-            setIsDragging(true); // Reset dragging flag
-            handleDrag(waypoints[i], i, setWaypoints, waypoints, e);
-        },
-        onDragEnd: (e, i) => {
-            setIsDragging(false); // Reset dragging flag
-            handleDrag(waypoints[i], i, setWaypoints, waypoints, e);
-        },
-    };
 
     const ConfigPanel = () => {
         const buttonStyle = (toolName) => ({
@@ -390,6 +450,7 @@ const App = () => {
             borderRadius: '4px',
             outline: 'none',
         });
+
 
         return (
             <div
@@ -449,24 +510,43 @@ const App = () => {
                         </p>
                     )}
                 </div>
+                <div>
+                    <label>
+                        Show Alignment Guides:
+                        <input
+                            type="checkbox"
+                            checked={config.showAlignmentGuides}
+                            onChange={(e) =>
+                                setConfig((prev) => ({
+                                    ...prev,
+                                    showAlignmentGuides: e.target.checked,
+                                }))
+                            }
+                        />
+                    </label>
+                </div>
             </div>
+            
             
         );
     };
 
-   
+    
 
     return (
         <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
             <ConfigPanel />
             <div style={{ flex: 3 }}>
                 <Stage
+                    
+                        onWheel={handleWheelZoom}
                     width={window.innerWidth * 0.75}
                     height={window.innerHeight}
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onDblClick={handleDoubleClick}
                     style={{ background: "#ddd" }}
+                    
                 >
                     <Layer>
                         {config.showGrid && renderGrid()}                        
@@ -483,7 +563,32 @@ const App = () => {
                                 fill="rgba(0, 0, 255, 0.2)"
                             />
                         ))}
-
+                        {alignmentGuides.x && (
+                            <Line
+                                points={[
+                                    alignmentGuides.x * config.scale,
+                                    0,
+                                    alignmentGuides.x * config.scale,
+                                    window.innerHeight,
+                                ]}
+                                stroke="red"
+                                strokeWidth={1}
+                                dash={[10, 5]}
+                            />
+                        )}
+                        {alignmentGuides.y && (
+                            <Line
+                                points={[
+                                    0,
+                                    alignmentGuides.y * config.scale,
+                                    window.innerWidth,
+                                    alignmentGuides.y * config.scale,
+                                ]}
+                                stroke="red"
+                                strokeWidth={1}
+                                dash={[10, 5]}
+                            />
+                        )}
                         {/* Current Geometry */}
                         {currentGeometryPoints && (
                             <>
