@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect, Circle } from "react-konva";
 
 const App = () => {
@@ -19,7 +19,26 @@ const App = () => {
     const [isDragging, setIsDragging] = useState(false);
 
     const generateId = (prefix) => `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
+    // Esc key handler
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === "Escape") {
+                setCurrentGeometryPoints(null);
+                setCurrentWaypoint(null);
+                setCurrentRect(null);
+                setCurrentExit(null);
+                setCurrentConnectionPath(null);
+                setMousePosition(null); // Clear any temporary positions
+            }
+        };
 
+        document.addEventListener("keydown", handleKeyDown);
+
+        // Cleanup the event listener on component unmount
+        return () => {
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, []);
     const handleMouseDown = (e) => {
         if (isDragging) return; // Skip if dragging an object
         const pos = e.target.getStage().getPointerPosition();
@@ -52,7 +71,7 @@ const App = () => {
                 setCurrentGeometryPoints([...currentGeometryPoints, scaledPos.x, scaledPos.y]);
             }
         }
-         else if (tool === "waypoint") {
+        else if (tool === "waypoint") {
             if (!currentWaypoint) {
                 setCurrentWaypoint({ x: scaledPos.x, y: scaledPos.y, radius: 0 });
             } else {
@@ -165,19 +184,19 @@ const App = () => {
     };
 
     
-const handleDoubleClick = () => {
-    if (tool === "geometry" && currentGeometryPoints) {
-        if (currentGeometryPoints.length >= 4) {
-            // Save the finalized polygon
-            setGeometry([
-                ...geometry,
-                { id: generateId("g"), points: currentGeometryPoints },
-            ]);
+    const handleDoubleClick = () => {
+        if (tool === "geometry" && currentGeometryPoints) {
+            if (currentGeometryPoints.length >= 4) {
+                // Save the finalized polygon
+                setGeometry([
+                    ...geometry,
+                    { id: generateId("g"), points: currentGeometryPoints },
+                ]);
+            }
+            setCurrentGeometryPoints(null); // Reset for the next shape
+            setMousePosition(null); // Clear the dashed line
         }
-        setCurrentGeometryPoints(null); // Reset for the next shape
-        setMousePosition(null); // Clear the dashed line
-    }
-};
+    };
 
     const findElementByPoint = (x, y) => {
         for (const g of geometry) {
@@ -235,19 +254,19 @@ const handleDoubleClick = () => {
         URL.revokeObjectURL(url);
     };
 
-const waypointsDragHandlers = {
-    onDragStart: () => setIsDragging(true), // Set dragging flag
-    onDragEnd: (e, i) => {
-        setIsDragging(false); // Reset dragging flag
-        const pos = e.target.position();
-        const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
-        setWaypoints(
-            waypoints.map((wp, index) =>
-                index === i ? { ...wp, x: scaledPos.x, y: scaledPos.y } : wp
-            )
-        );
-    },
-};
+    const waypointsDragHandlers = {
+        onDragStart: () => setIsDragging(true), // Set dragging flag
+        onDragEnd: (e, i) => {
+            setIsDragging(false); // Reset dragging flag
+            const pos = e.target.position();
+            const scaledPos = { x: pos.x / SCALE, y: pos.y / SCALE };
+            setWaypoints(
+                waypoints.map((wp, index) =>
+                    index === i ? { ...wp, x: scaledPos.x, y: scaledPos.y } : wp
+                )
+            );
+        },
+    };
     
     return (
         <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
@@ -368,11 +387,11 @@ const waypointsDragHandlers = {
                                         exits.map((exit, index) =>
                                             index === i
                                                 ? {
-                                                      ...exit,
-                                                      x: scaledPos.x - exit.width / 2,
-                                                      y: scaledPos.y - exit.height / 2,
-                                                  }
-                                                : exit
+                                                    ...exit,
+                                                    x: scaledPos.x - exit.width / 2,
+                                                    y: scaledPos.y - exit.height / 2,
+                                                }
+                                            : exit
                                         )
                                     );
                                 }}
@@ -414,11 +433,11 @@ const waypointsDragHandlers = {
                                         distributions.map((dist, index) =>
                                             index === i
                                                 ? {
-                                                      ...dist,
-                                                      x: scaledPos.x - dist.width / 2,
-                                                      y: scaledPos.y - dist.height / 2,
-                                                  }
-                                                : dist
+                                                    ...dist,
+                                                    x: scaledPos.x - dist.width / 2,
+                                                    y: scaledPos.y - dist.height / 2,
+                                                }
+                                            : dist
                                         )
                                     );
                                 }}
