@@ -207,13 +207,17 @@ const App = () => {
             if (isPointInCircle(x, y, w.x, w.y, w.radius)) return { id: w.id, type: "waypoint", x: w.x, y: w.y };
         }
         for (const e of exits) {
+            const centerX = e.x + e.width / 2;
+            const centerY = e.y + e.height / 2;
             if (x >= e.x && x <= e.x + e.width && y >= e.y && y <= e.y + e.height) {
-                return { id: e.id, type: "exit", x: e.x + e.width / 2, y: e.y + e.height / 2 };
+                return { id: e.id, type: "exit", x: centerX, y: centerY };
             }
         }
         for (const d of distributions) {
+            const centerX = d.x + d.width / 2;
+            const centerY = d.y + d.height / 2;
             if (x >= d.x && x <= d.x + d.width && y >= d.y && y <= d.y + d.height) {
-                return { id: d.id, type: "distribution", x: d.x + d.width / 2, y: d.y + d.height / 2 };
+                return { id: d.id, type: "distribution", x: centerX, y: centerY };
             }
         }
         return null;
@@ -317,29 +321,32 @@ const App = () => {
         return lines;
     };
 
+
     const updateConnections = (updatedElement) => {
         const updatedConnections = connections.map((c) => {
             if (c.from === updatedElement.id) {
                 // Update the source point
+                const sourceX =
+                      updatedElement.x * SCALE +
+                      (updatedElement.width ? (updatedElement.width / 2) * SCALE : 0);
+                const sourceY =
+                      updatedElement.y * SCALE +
+                      (updatedElement.height ? (updatedElement.height / 2) * SCALE : 0);
                 return {
                     ...c,
-                    points: [
-                        updatedElement.x * SCALE,
-                        updatedElement.y * SCALE,
-                        c.points[2],
-                        c.points[3],
-                    ],
+                    points: [sourceX, sourceY, c.points[2], c.points[3]],
                 };
             } else if (c.to === updatedElement.id) {
                 // Update the destination point
+                const targetX =
+                      updatedElement.x * SCALE +
+                      (updatedElement.width ? (updatedElement.width / 2) * SCALE : 0);
+                const targetY =
+                      updatedElement.y * SCALE +
+                      (updatedElement.height ? (updatedElement.height / 2) * SCALE : 0);
                 return {
                     ...c,
-                    points: [
-                        c.points[0],
-                        c.points[1],
-                        updatedElement.x * SCALE,
-                        updatedElement.y * SCALE,
-                    ],
+                    points: [c.points[0], c.points[1], targetX, targetY],
                 };
             }
             return c;
