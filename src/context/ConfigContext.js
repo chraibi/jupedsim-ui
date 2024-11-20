@@ -17,5 +17,6 @@ export const ConfigProvider = ({ children }) => {
         </ConfigContext.Provider>
     );
 };
-
-export default ConfigContext;
+// Export both the context and provider
+export { ConfigContext };
+export default ConfigProvider;

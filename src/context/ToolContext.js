@@ -12,4 +12,6 @@ export const ToolProvider = ({ children }) => {
     );
 };
 
-export default ToolContext;
+
+export { ToolContext };
+export default ToolProvider;

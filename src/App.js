@@ -1,10 +1,13 @@
+
 import React, { useState, useEffect } from "react";
 import { Stage, Layer, Line, Rect, Circle } from "react-konva";
+import ConfigPanel from './components/ConfigPanel';
+import Header from './components/Header';
+import Canvas from './components/Canvas';
+import Toolbar from './components/Toolbar';
 import './App.css';
 import logo from './assets/logo.png';
 const App = () => {
-    
-    
     const [config, setConfig] = useState({
         gridSpacing: 50,
         showGrid: true,
@@ -295,25 +298,6 @@ const App = () => {
     };
 
 
-
-    // const renderOptimizedGrid = () => {
-    //     const lines = [];
-    //     const viewWidth = window.innerWidth / config.;
-    //     const viewHeight = window.innerHeight / config.scale;
-
-    //     // Vertical lines
-    //     for (let x = 0; x <= viewWidth; x += config.gridSpacing) {
-    //         lines.push(<Line key={`v-${x}`} points={[x, 0, x, viewHeight]} stroke="#b3b3b3" strokeWidth={1} />);
-    //     }
-
-    //     // Horizontal lines
-    //     for (let y = 0; y <= viewHeight; y += config.gridSpacing) {
-    //         lines.push(<Line key={`h-${y}`} points={[0, y, viewWidth, y]} stroke="#b3b3b3" strokeWidth={1} />);
-    //     }
-
-    //     return lines;
-    // };
-
     const renderGrid = () => {
         const lines = [];
         const width = window.innerWidth * 0.75; // Adjust for canvas size
@@ -432,353 +416,58 @@ const App = () => {
     };
 
     const handleWheelZoom = (e) => {
-    e.evt.preventDefault();
-    const zoomBy = 1.05;
-    const newScale = e.evt.deltaY > 0 ? config.scale / zoomBy : config.scale * zoomBy;
-    setConfig((prev) => ({ ...prev, scale: newScale }));
-};
-
-
-    const ConfigPanel = () => {
-        const buttonStyle = (toolName) => ({
-            padding: '10px 15px',
-            margin: '5px',
-            border: '1px solid #ccc',
-            backgroundColor: tool === toolName ? '#4CAF50' : '#f0f0f0', // Highlight active tool
-            color: tool === toolName ? 'white' : 'black',
-            cursor: 'pointer',
-            borderRadius: '4px',
-            outline: 'none',
-        });
-
-
-        return (
-
-            <div
-                style={{
-                    padding: '10px',
-                    backgroundColor: '#f0f0f0',
-                    borderRight: '1px solid #ccc',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '20px',
-                }}
-            >
-          
-                {/* Logo Section */}
-<div
-    style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '10px', // Adjust padding to control internal spacing
-        height: '10px', // Set a fixed height for the header
-        backgroundColor: '#f0f0f0', // Optional: Adjust background color
-    }}
->
-    <img
-        src={logo}
-        className="App-logo"
-        alt="logo"
-        style={{
-            height: '70px', // Smaller logo size
-            marginBottom: '5px', // Add minimal spacing below the logo
-        }}
-    />
-</div>
-
-                <h3>Simulation Config</h3>
-
-                {/* Tools Section */}
-                <div style={{ borderBottom: '1px solid #ccc', paddingBottom: '10px' }}>
-                    <h4>Tools</h4>
-                    <button style={buttonStyle('geometry')} onClick={() => setTool('geometry')}>
-                        Geometry Tool
-                    </button>
-                    <button style={buttonStyle('waypoint')} onClick={() => setTool('waypoint')}>
-                        Waypoint Tool
-                    </button>
-                    <button style={buttonStyle('exit')} onClick={() => setTool('exit')}>
-                        Exit Tool
-                    </button>
-                    <button style={buttonStyle('distribution')} onClick={() => setTool('distribution')}>
-                        Distribution Tool
-                    </button>
-                    <button style={buttonStyle('connection')} onClick={() => setTool('connection')}>
-                        Connection Tool
-                    </button>
-                    <button style={buttonStyle('delete')} onClick={() => setTool('delete')}>
-                        Delete Tool
-                    </button>
-                    <button   style={buttonStyle('export')} onClick={exportData}>
-                    Export Data
-                </button>
-                </div>
-                <div>
-                    <label>
-                        Show Grid:
-                        <input
-                            type="checkbox"
-                            checked={config.showGrid}
-                            onChange={(e) =>
-                                setConfig((prev) => ({
-                                    ...prev,
-                                    showGrid: e.target.checked,
-                                }))
-                            }
-                        />
-                    </label>
-                </div>
-                <div className="small-text">
-                    {mousePosition && (
-                        <p>
-                            ({mousePosition.x.toFixed(2)} m, {mousePosition.y.toFixed(2)} m)
-                        </p>
-                    )}
-                </div>
-                {/*
-                <div>
-                    <label>
-                        Show Alignment Guides:
-                        <input
-                            type="checkbox"
-                            checked={config.showAlignmentGuides}
-                            onChange={(e) =>
-                                setConfig((prev) => ({
-                                    ...prev,
-                                    showAlignmentGuides: e.target.checked,
-                                }))
-                            }
-                        />
-                    </label>
-                    </div>
-                 */}
-                </div>
-            
-            
-        );
+        e.evt.preventDefault();
+        const zoomBy = 1.05;
+        const newScale = e.evt.deltaY > 0 ? config.scale / zoomBy : config.scale * zoomBy;
+        setConfig((prev) => ({ ...prev, scale: newScale }));
     };
 
-    
 
+    
     return (
         <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
-            <ConfigPanel />
-            <div style={{ flex: 3 }}>
-                <Stage
-                    
-
-                    width={window.innerWidth * 0.75}
-                    height={window.innerHeight}
-                    onMouseDown={handleMouseDown}
-                    onMouseMove={handleMouseMove}
-                    onDblClick={handleDoubleClick}
-                    style={{ background: "#ddd" }}
-                    
-                >
-                    <Layer>
-                        {config.showGrid && renderGrid()}                        
-
-                        {/* Geometry */}
-                        
-                        {geometry.map((polygon, i) => (
-                            <Line
-                                key={`geo-${i}`}
-                                points={polygon.points.map((p) => p * config.scale)}
-                                stroke="blue"
-                                strokeWidth={2}
-                                closed
-                                fill="rgba(0, 0, 255, 0.2)"
-                            />
-                        ))}
-                        {config.showAlignmentGuides && alignmentGuides.x && (
-                            <Line
-                                points={[
-                                    alignmentGuides.x * config.scale,
-                                    0,
-                                    alignmentGuides.x * config.scale,
-                                    window.innerHeight,
-                                ]}
-                                stroke="red"
-                                strokeWidth={1}
-                                dash={[10, 5]}
-                            />
-                        )}
-                        {config.showAlignmentGuides && alignmentGuides.y && (
-                            <Line
-                                points={[
-                                    0,
-                                    alignmentGuides.y * config.scale,
-                                    window.innerWidth,
-                                    alignmentGuides.y * config.scale,
-                                ]}
-                                stroke="red"
-                                strokeWidth={1}
-                                dash={[10, 5]}
-                            />
-                        )}
-                        {/* Current Geometry */}
-                        {currentGeometryPoints && (
-                            <>
-                                <Line
-                                    points={currentGeometryPoints.flatMap((p, i) =>
-                                        i % 2 === 0 ? [p * config.scale, currentGeometryPoints[i + 1] * config.scale] : []
-                                    )}
-                                    stroke="blue"
-                                    strokeWidth={2}
-                                    closed={false}
-                                />
-                                {mousePosition && (
-                                    <Line
-                                        points={[
-                                            currentGeometryPoints[currentGeometryPoints.length - 2] * config.scale,
-                                            currentGeometryPoints[currentGeometryPoints.length - 1] * config.scale,
-                                            mousePosition.x * config.scale,
-                                            mousePosition.y * config.scale,
-                                        ]}
-                                        stroke="red"
-                                        strokeWidth={2}
-                                        dash={[10, 5]}
-                                        closed={false}
-                                    />
-                                )}
-                            </>
-                        )}
-                        {/* Waypoints */}
-                        {waypoints.map((w, i) => (
-                            <Circle
-                                key={`wp-${i}`}
-                                x={w.x * config.scale}
-                                y={w.y * config.scale}
-                                radius={w.radius * config.scale}
-                                fill="purple"
-                                draggable
-                                onDragStart={waypointsDragHandlers.onDragStart}
-                                onDragMove={(e) => {
-                                    const pos = e.target.position();
-                                    const scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
-                                    const updatedWaypoint = { ...w, x: scaledPos.x, y: scaledPos.y };
-
-                                    // Update the waypoint position
-                                    setWaypoints(
-                                        waypoints.map((wp, index) =>
-                                            index === i ? updatedWaypoint : wp
-                                        )
-                                    );
-
-                                    // Update connections live
-                                    updateConnections(updatedWaypoint);
-                                }}
-                                onDragEnd={(e) => waypointsDragHandlers.onDragEnd(e, i)}
-                            />
-                        ))}
-
-                        {/* Current Waypoint */}
-                        {currentWaypoint && (
-                            <Circle
-                                x={currentWaypoint.x * config.scale}
-                                y={currentWaypoint.y * config.scale}
-                                radius={currentWaypoint.radius * config.scale}
-                                stroke="purple"
-                                strokeWidth={2}
-                                dash={[10, 5]}
-                                fill="rgba(128, 0, 128, 0.2)"
-                            />
-                        )}
-
-                        {/* Exits */}
-                        {exits.map((e, i) => (
-                            <Rect
-                                key={`exit-${i}`}
-                                x={e.x * config.scale}
-                                y={e.y * config.scale}
-                                width={e.width * config.scale}
-                                height={e.height * config.scale}
-                                stroke="green"
-                                strokeWidth={2}
-                                fill="rgba(0, 255, 0, 0.2)"
-                                draggable
-                                onDragStart={() => setIsDragging(true)}
-                                onDragMove={(e) => exitsDragHandlers.onDragMove(e, i)}
-                                onDragEnd={(e) => exitsDragHandlers.onDragEnd(e, i)}
-                                
-                            />
-                        ))}
-
-                        {/* Current Exit */}
-                        {currentExit && (
-                            <Rect
-                                x={currentExit.x * config.scale}
-                                y={currentExit.y * config.scale}
-                                width={currentExit.width * config.scale}
-                                height={currentExit.height * config.scale}
-                                stroke="green"
-                                strokeWidth={2}
-                                dash={[10, 5]}
-                                fill="rgba(0, 255, 0, 0.2)"
-                            />
-                        )}
-
-                        {/* Distributions */}
-                        {distributions.map((d, i) => (
-                            <Rect
-                                key={`dist-${i}`}
-                                x={d.x * config.scale}
-                                y={d.y * config.scale}
-                                width={d.width * config.scale}
-                                height={d.height * config.scale}
-                                stroke="orange"
-                                strokeWidth={2}
-                                fill="rgba(255, 165, 0, 0.2)"
-                                draggable
-                                onDragStart={() => setIsDragging(true)}
-                                onDragMove={(e) => distributionsDragHandlers.onDragMove(e, i)}
-                                onDragEnd={(e) => distributionsDragHandlers.onDragEnd(e, i)}
-                            />
-                        ))}
-
-                        {/* Current Distribution */}
-                        {currentRect && (
-                            <Rect
-                                x={currentRect.x * config.scale}
-                                y={currentRect.y * config.scale}
-                                width={currentRect.width * config.scale}
-                                height={currentRect.height * config.scale}
-                                stroke="orange"
-                                strokeWidth={2}
-                                dash={[10, 5]}
-                                fill="rgba(255, 165, 0, 0.2)"
-                            />
-                        )}
-
-                        {/* Connections */}
-                        {connections.map((c, i) => (
-                            <Line
-                                key={`conn-${i}`}
-                                points={c.points}
-                                stroke="red"
-                                strokeWidth={2}
-                                lineCap="round"
-                                lineJoin="round"
-                            />
-                        ))}
-                        {currentConnectionPath?.tempX && (
-                            <Line
-                                points={[
-                                    currentConnectionPath.x * config.scale,
-                                    currentConnectionPath.y * config.scale,
-                                    currentConnectionPath.tempX,
-                                    currentConnectionPath.tempY,
-                                ]}
-                                stroke="red"
-                                strokeWidth={2}
-                                dash={[10, 5]}
-                            />
-                        )}
-                    </Layer>
-                </Stage>
+            {/* Sidebar ConfigPanel */}
+            <ConfigPanel
+                tool={tool}
+                setTool={setTool}
+                config={config}
+                setConfig={setConfig}
+                exportData={exportData}
+                logo={logo}
+            />
+            {/* Main Content Area */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                {/* Toolbar above the Canvas */}
+                <Toolbar
+                    config={config}
+                    setConfig={setConfig}
+                    mousePosition={mousePosition}
+                />
+                <div style={{ flex: 1 }}>
+                    <Canvas
+                        config={config}
+                        handleMouseDown={handleMouseDown}
+                        handleMouseMove={handleMouseMove}
+                        handleDoubleClick={handleDoubleClick}
+                        renderGrid={renderGrid}
+                        geometry={geometry}
+                        alignmentGuides={alignmentGuides}
+                        currentGeometryPoints={currentGeometryPoints}
+                        mousePosition={mousePosition}
+                        waypoints={waypoints}
+                        waypointsDragHandlers={waypointsDragHandlers}
+                        exits={exits}
+                        exitsDragHandlers={exitsDragHandlers}
+                        distributions={distributions}
+                        distributionsDragHandlers={distributionsDragHandlers}
+                        currentRect={currentRect}
+                        currentExit={currentExit}
+                        currentWaypoint={currentWaypoint}
+                        currentConnectionPath={currentConnectionPath}
+                        connections={connections}
+                        updateConnections={updateConnections}
+                    />
+                </div>
             </div>
         </div>
     );
