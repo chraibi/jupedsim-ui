@@ -569,7 +569,7 @@ const App = () => {
             <div style={{ flex: 3 }}>
                 <Stage
                     
-                        onWheel={handleWheelZoom}
+
                     width={window.innerWidth * 0.75}
                     height={window.innerHeight}
                     onMouseDown={handleMouseDown}
