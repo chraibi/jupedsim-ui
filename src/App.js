@@ -38,46 +38,22 @@ const App = () => {
     const [isDragging, setIsDragging] = useState(false);
     const [alignmentGuides, setAlignmentGuides] = useState({ x: null, y: null });
 
-      useEscapeHandler({
-    resetTool: () => setTool(null),
-    resetGeometryPoints: () => setCurrentGeometryPoints(null),
-    resetWaypoint: () => setCurrentWaypoint(null),
-    resetRect: () => setCurrentRect(null),
-    resetExit: () => setCurrentExit(null),
-    resetConnectionPath: () => setCurrentConnectionPath(null),
-    resetMousePosition: () => setMousePosition(null),
-  });
-    // // Esc key handler
-    // useEffect(() => {
-    //     const handleKeyDown = (e) => {
-    //         if (e.key === "Escape") {
-    //             setTool(null);
-    //             setCurrentGeometryPoints(null);
-    //             setCurrentWaypoint(null);
-    //             setCurrentRect(null);
-    //             setCurrentExit(null);
-    //             setCurrentConnectionPath(null);
-    //             setMousePosition(null); // Clear any temporary positions
-    //         }
-    //     };
-
-    //     document.addEventListener("keydown", handleKeyDown);
-
-    //     // Cleanup the event listener on component unmount
-    //     return () => {
-    //         document.removeEventListener("keydown", handleKeyDown);
-    //     };
-    // }, []);
-
-
-
+    useEscapeHandler({
+        resetTool: () => setTool(null),
+        resetGeometryPoints: () => setCurrentGeometryPoints(null),
+        resetWaypoint: () => setCurrentWaypoint(null),
+        resetRect: () => setCurrentRect(null),
+        resetExit: () => setCurrentExit(null),
+        resetConnectionPath: () => setCurrentConnectionPath(null),
+        resetMousePosition: () => setMousePosition(null),
+    });
     const handleMouseDown = (e) => {
         if (isDragging || !tool) return; // Skip if dragging an object
         const pos = e.target.getStage().getPointerPosition();
         const scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
 
         if (tool === "delete") {
-            const elementToDelete = findElementByPoint(scaledPos.x, scaledPos.y, waypoints, exits, distributions);
+            const elementToDelete = findElementByPoint(scaledPos.x, scaledPos.y, geometry, waypoints, exits, distributions);
             if (elementToDelete) {
                 if (elementToDelete.type === "geometry") {
                     setGeometry(geometry.filter((g) => g.id !== elementToDelete.id));
@@ -143,7 +119,7 @@ const App = () => {
                 setCurrentRect(null);
             }
         } else if (tool === "connection") {
-            const clickedElement = findElementByPoint(scaledPos.x, scaledPos.y, waypoints, exits, distributions);
+            const clickedElement = findElementByPoint(scaledPos.x, scaledPos.y, geometry, waypoints, exits, distributions);
             if (!clickedElement) return;
             if (!currentConnectionPath) {
                 setCurrentConnectionPath({ id: clickedElement.id, x: clickedElement.x, y: clickedElement.y });

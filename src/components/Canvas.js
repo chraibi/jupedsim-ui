@@ -10,6 +10,8 @@ import Waypoint from './WayPoint'
 import Exit from './Exit'
 import Distribution from './Distribution'
 import ConnectionLine from './ConnectionLine'
+import PropTypes from 'prop-types';
+
 const Canvas = ({
     config,
     handleMouseDown,
@@ -163,5 +165,49 @@ const Canvas = ({
         </Stage>
     );
 };
+
+
+// PropTypes validation
+Canvas.propTypes = {
+    config: PropTypes.shape({
+        gridSpacing: PropTypes.number.isRequired,
+        showGrid: PropTypes.bool.isRequired,
+        scale: PropTypes.number.isRequired,
+        showAlignmentGuides: PropTypes.bool,
+        snapThreshold: PropTypes.number.isRequired,
+    }).isRequired,
+    handleMouseDown: PropTypes.func.isRequired,
+    handleMouseMove: PropTypes.func.isRequired,
+    handleDoubleClick: PropTypes.func.isRequired,
+    renderGrid: PropTypes.func.isRequired,
+    geometry: PropTypes.arrayOf(PropTypes.object).isRequired,
+    alignmentGuides: PropTypes.shape({
+        x: PropTypes.number,
+        y: PropTypes.number,
+    }),
+    currentGeometryPoints: PropTypes.arrayOf(PropTypes.number),
+    mousePosition: PropTypes.shape({
+        x: PropTypes.number,
+        y: PropTypes.number,
+    }),
+    waypoints: PropTypes.arrayOf(PropTypes.object).isRequired,
+    waypointsDragHandlers: PropTypes.object.isRequired,
+    exits: PropTypes.arrayOf(PropTypes.object).isRequired,
+    exitsDragHandlers: PropTypes.object.isRequired,
+    distributions: PropTypes.arrayOf(PropTypes.object).isRequired,
+    distributionsDragHandlers: PropTypes.object.isRequired,
+    currentRect: PropTypes.object,
+    currentExit: PropTypes.object,
+    currentWaypoint: PropTypes.object,
+    currentConnectionPath: PropTypes.shape({
+        x: PropTypes.number.isRequired,
+        y: PropTypes.number.isRequired,
+        tempX: PropTypes.number,
+        tempY: PropTypes.number,
+    }),
+    connections: PropTypes.arrayOf(PropTypes.object).isRequired,
+    updateConnections: PropTypes.func.isRequired,
+};
+
 
 export default Canvas;
