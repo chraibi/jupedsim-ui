@@ -311,6 +311,21 @@ const App = () => {
         });
     };
 
+    const handleEdgeDrag = (newPoint, edgeIndex, polygonId) => {
+    setGeometry((prevGeometry) =>
+        prevGeometry.map((polygon) => {
+            if (polygon.id === polygonId) {
+                const updatedPoints = [...polygon.points];
+                // Update the start and end points of the dragged edge
+                updatedPoints[edgeIndex] = newPoint.x;
+                updatedPoints[edgeIndex + 1] = newPoint.y;
+                return { ...polygon, points: updatedPoints };
+            }
+            return polygon;
+        })
+    );
+};
+
     // const handleWheelZoom = (e) => {
     //     e.evt.preventDefault();
     //     const zoomBy = 1.05;
@@ -362,6 +377,7 @@ const App = () => {
                         currentConnectionPath={currentConnectionPath}
                         connections={connections}
                         updateConnections={updateConnections}
+                        handleEdgeDrag={handleEdgeDrag} 
                     />
                 </div>
             </div>

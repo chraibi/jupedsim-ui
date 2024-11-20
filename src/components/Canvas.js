@@ -34,6 +34,7 @@ const Canvas = ({
     currentConnectionPath,
     connections,
     updateConnections,
+    handleEdgeDrag,
 }) => {
     return (
         <Stage
@@ -49,7 +50,12 @@ const Canvas = ({
 
                 {/* Geometry */}
                 {geometry.map((polygon, i) => (
-                    <GeometryShape key={i} polygon={polygon} config={config} />
+                    <GeometryShape
+                        key={i}
+                        polygon={polygon}
+                        config={config}
+                        onEdgeDrag={handleEdgeDrag}
+                    />
                 ))}
 
                 {/* Alignment Guides */}
