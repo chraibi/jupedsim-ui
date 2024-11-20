@@ -5,6 +5,13 @@ import ConfigPanel from './components/ConfigPanel';
 import Header from './components/Header';
 import Canvas from './components/Canvas';
 import Toolbar from './components/Toolbar';
+
+import useGrid from "./hooks/useGrid";
+//import useDragHandlers from "./hooks/useDragHandlers";
+import { generateId, clamp } from './utils/idUtils';
+import { isPointInPolygon, isPointInCircle, findNearestSnapPoint, findElementByPoint } from './utils/geometryUtils';
+import { findAlignmentGuides } from './utils/snapUtils';
+import useEscapeHandler from "./hooks/useEscapeHandler";
 import './App.css';
 import logo from './assets/logo.png';
 const App = () => {
@@ -15,6 +22,7 @@ const App = () => {
         showAlignmentGuides: false,
         snapThreshold: 10,
     });
+    const { renderGrid } = useGrid(config);
     const [tool, setTool] = useState("geometry");
     const [geometry, setGeometry] = useState([]);
     const [exits, setExits] = useState([]);
@@ -29,57 +37,39 @@ const App = () => {
     const [currentWaypoint, setCurrentWaypoint] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const [alignmentGuides, setAlignmentGuides] = useState({ x: null, y: null });
-    const generateId = (prefix) => `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
-    // Esc key handler
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === "Escape") {
-                setTool(null);
-                setCurrentGeometryPoints(null);
-                setCurrentWaypoint(null);
-                setCurrentRect(null);
-                setCurrentExit(null);
-                setCurrentConnectionPath(null);
-                setMousePosition(null); // Clear any temporary positions
-            }
-        };
 
-        document.addEventListener("keydown", handleKeyDown);
+      useEscapeHandler({
+    resetTool: () => setTool(null),
+    resetGeometryPoints: () => setCurrentGeometryPoints(null),
+    resetWaypoint: () => setCurrentWaypoint(null),
+    resetRect: () => setCurrentRect(null),
+    resetExit: () => setCurrentExit(null),
+    resetConnectionPath: () => setCurrentConnectionPath(null),
+    resetMousePosition: () => setMousePosition(null),
+  });
+    // // Esc key handler
+    // useEffect(() => {
+    //     const handleKeyDown = (e) => {
+    //         if (e.key === "Escape") {
+    //             setTool(null);
+    //             setCurrentGeometryPoints(null);
+    //             setCurrentWaypoint(null);
+    //             setCurrentRect(null);
+    //             setCurrentExit(null);
+    //             setCurrentConnectionPath(null);
+    //             setMousePosition(null); // Clear any temporary positions
+    //         }
+    //     };
 
-        // Cleanup the event listener on component unmount
-        return () => {
-            document.removeEventListener("keydown", handleKeyDown);
-        };
-    }, []);
-    const findNearestSnapPoint = (pos) => {
-        const snappedX = Math.round(pos.x / config.gridSpacing) * config.gridSpacing;
-        const snappedY = Math.round(pos.y / config.gridSpacing) * config.gridSpacing;
+    //     document.addEventListener("keydown", handleKeyDown);
 
-        if (
-            Math.abs(pos.x - snappedX) <= config.snapThreshold &&
-                Math.abs(pos.y - snappedY) <= config.snapThreshold
-        ) {
-            return { x: snappedX, y: snappedY };
-        }
-        return pos;
-    };
+    //     // Cleanup the event listener on component unmount
+    //     return () => {
+    //         document.removeEventListener("keydown", handleKeyDown);
+    //     };
+    // }, []);
 
-    const findAlignmentGuides = (draggedElement, elements) => {
-        const guides = { x: null, y: null };
 
-        elements.forEach((element) => {
-            if (element.id !== draggedElement.id) {
-                if (Math.abs(element.x - draggedElement.x) < config.snapThreshold) {
-                    guides.x = element.x;
-                }
-                if (Math.abs(element.y - draggedElement.y) < config.snapThreshold) {
-                    guides.y = element.y;
-                }
-            }
-        });
-
-        return guides;
-    };
 
     const handleMouseDown = (e) => {
         if (isDragging || !tool) return; // Skip if dragging an object
@@ -87,7 +77,7 @@ const App = () => {
         const scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
 
         if (tool === "delete") {
-            const elementToDelete = findElementByPoint(scaledPos.x, scaledPos.y);
+            const elementToDelete = findElementByPoint(scaledPos.x, scaledPos.y, waypoints, exits, distributions);
             if (elementToDelete) {
                 if (elementToDelete.type === "geometry") {
                     setGeometry(geometry.filter((g) => g.id !== elementToDelete.id));
@@ -153,7 +143,7 @@ const App = () => {
                 setCurrentRect(null);
             }
         } else if (tool === "connection") {
-            const clickedElement = findElementByPoint(scaledPos.x, scaledPos.y);
+            const clickedElement = findElementByPoint(scaledPos.x, scaledPos.y, waypoints, exits, distributions);
             if (!clickedElement) return;
             if (!currentConnectionPath) {
                 setCurrentConnectionPath({ id: clickedElement.id, x: clickedElement.x, y: clickedElement.y });
@@ -240,45 +230,7 @@ const App = () => {
         }
     };
 
-    const findElementByPoint = (x, y) => {
-        for (const w of waypoints) {
-            if (isPointInCircle(x, y, w.x, w.y, w.radius)) return { id: w.id, type: "waypoint", x: w.x, y: w.y };
-        }
-        for (const e of exits) {
-            const centerX = e.x + e.width / 2;
-            const centerY = e.y + e.height / 2;
-            if (x >= e.x && x <= e.x + e.width && y >= e.y && y <= e.y + e.height) {
-                return { id: e.id, type: "exit", x: centerX, y: centerY };
-            }
-        }
-        for (const d of distributions) {
-            const centerX = d.x + d.width / 2;
-            const centerY = d.y + d.height / 2;
-            if (x >= d.x && x <= d.x + d.width && y >= d.y && y <= d.y + d.height) {
-                return { id: d.id, type: "distribution", x: centerX, y: centerY };
-            }
-        }
-        return null;
-    };
 
-    const isPointInPolygon = (x, y, points) => {
-        let isInside = false;
-        const n = points.length / 2;
-        for (let i = 0, j = n - 1; i < n; j = i++) {
-            const xi = points[i * 2];
-            const yi = points[i * 2 + 1];
-            const xj = points[j * 2];
-            const yj = points[j * 2 + 1];
-            const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-            if (intersect) isInside = !isInside;
-        }
-        return isInside;
-    };
-
-    const isPointInCircle = (x, y, cx, cy, radius) => {
-        const distanceSquared = (x - cx) ** 2 + (y - cy) ** 2;
-        return distanceSquared <= radius ** 2;
-    };
 
     const exportData = () => {
         const data = {
@@ -298,37 +250,7 @@ const App = () => {
     };
 
 
-    const renderGrid = () => {
-        const lines = [];
-        const width = window.innerWidth * 0.75; // Adjust for canvas size
-        const height = window.innerHeight;
 
-        // Vertical lines
-        for (let x = 0; x <= width; x += config.gridSpacing) {
-            lines.push(
-                <Line
-                    key={`v-${x}`}
-                    points={[x, 0, x, height]}
-                    stroke="#b3b3b3"
-                    strokeWidth={1}
-                />
-            );
-        }
-
-        // Horizontal lines
-        for (let y = 0; y <= height; y += config.gridSpacing) {
-            lines.push(
-                <Line
-                    key={`h-${y}`}
-                    points={[0, y, width, y]}
-                    stroke="#b3b3b3"
-                    strokeWidth={1}
-                />
-            );
-        }
-
-        return lines;
-    };
 
 
     const updateConnections = (updatedElement) => {
@@ -366,7 +288,7 @@ const App = () => {
     const handleDrag = (updatedElement, i, setElements, elements, e) => {
         const pos = e.target.position();
         let scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
-        scaledPos = findNearestSnapPoint(scaledPos);
+        scaledPos = findNearestSnapPoint(scaledPos, config);
         const updatedObject = { ...updatedElement, x: scaledPos.x, y: scaledPos.y };
         setElements(
             elements.map((element, index) =>
@@ -397,12 +319,10 @@ const App = () => {
             handleDrag(elements[i], i, setElements, elements, e);
         },
     });
+    
     const exitsDragHandlers = createDragHandlers(setExits, exits);
     const distributionsDragHandlers = createDragHandlers(setDistributions, distributions);
     const waypointsDragHandlers = createDragHandlers(setWaypoints, waypoints);
-
-
-    const clamp = (value, min, max) => Math.max(min, Math.min(value, max));
 
     const handleDragStage = (e) => {
         const pos = e.target.position();
@@ -415,12 +335,12 @@ const App = () => {
         });
     };
 
-    const handleWheelZoom = (e) => {
-        e.evt.preventDefault();
-        const zoomBy = 1.05;
-        const newScale = e.evt.deltaY > 0 ? config.scale / zoomBy : config.scale * zoomBy;
-        setConfig((prev) => ({ ...prev, scale: newScale }));
-    };
+    // const handleWheelZoom = (e) => {
+    //     e.evt.preventDefault();
+    //     const zoomBy = 1.05;
+    //     const newScale = e.evt.deltaY > 0 ? config.scale / zoomBy : config.scale * zoomBy;
+    //     setConfig((prev) => ({ ...prev, scale: newScale }));
+    // };
 
 
     
