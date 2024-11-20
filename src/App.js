@@ -11,8 +11,8 @@ const App = () => {
     const [config, setConfig] = useState({
         gridSpacing: 50,
         showGrid: true,
-        scale: 10,
-        showAlignmentGuides: true,
+        scale: 50,
+        showAlignmentGuides: false,
         snapThreshold: 10,
     });
     const [tool, setTool] = useState("geometry");
