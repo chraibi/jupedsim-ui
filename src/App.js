@@ -55,15 +55,17 @@ const App = () => {
         if (tool === "delete") {
             const elementToDelete = findElementByPoint(scaledPos.x, scaledPos.y, geometry, waypoints, exits, distributions);
             if (elementToDelete) {
-                if (elementToDelete.type === "geometry") {
-                    setGeometry(geometry.filter((g) => g.id !== elementToDelete.id));
-                } else if (elementToDelete.type === "waypoint") {
+                if (elementToDelete.type === "waypoint") {
                     setWaypoints(waypoints.filter((w) => w.id !== elementToDelete.id));
                 } else if (elementToDelete.type === "exit") {
                     setExits(exits.filter((e) => e.id !== elementToDelete.id));
                 } else if (elementToDelete.type === "distribution") {
                     setDistributions(distributions.filter((d) => d.id !== elementToDelete.id));
                 }
+                if (elementToDelete.type === "geometry") {
+                    setGeometry(geometry.filter((g) => g.id !== elementToDelete.id));
+                } else
+               
                 setConnections(
                     connections.filter((c) => c.from !== elementToDelete.id && c.to !== elementToDelete.id)
                 );
