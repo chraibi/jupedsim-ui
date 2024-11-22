@@ -328,25 +328,88 @@ const createDragHandlers = (setElements, elements) => ({
         const height = window.innerHeight;
 
         e.target.position({
-            x: clamp(pos.x, -width, width), // Adjust min/max as needed
+            x: clamp(pos.x, -width, width),
             y: clamp(pos.y, -height, height),
         });
     };
 
-    const handleEdgeDrag = (newPoint, edgeIndex, polygonId) => {
-    setGeometry((prevGeometry) =>
-        prevGeometry.map((polygon) => {
-            if (polygon.id === polygonId) {
-                const updatedPoints = [...polygon.points];
-                // Update the start and end points of the dragged edge
-                updatedPoints[edgeIndex] = newPoint.x;
-                updatedPoints[edgeIndex + 1] = newPoint.y;
-                return { ...polygon, points: updatedPoints };
-            }
-            return polygon;
-        })
-    );
-};
+    const handleEdgeDrag = (newPoint, edgeIndex, id, type) => {
+        const minDimension = 1;
+        if (type === "geometry") {
+            setGeometry((prevGeometry) =>
+                prevGeometry.map((polygon) => {
+                    if (polygon.id === id) {
+                        const updatedPoints = [...polygon.points];
+                        // Update the start and end points of the dragged edge
+                        updatedPoints[edgeIndex] = newPoint.x;
+                        updatedPoints[edgeIndex + 1] = newPoint.y;
+                        return { ...polygon, points: updatedPoints };
+                    }
+                    return polygon;
+                })
+            );
+        } else if (type === "distribution") {
+            setDistributions((prevDistributions) =>
+                prevDistributions.map((distribution) => {
+                    if (distribution.id === id) {
+                        const { x, y, width, height } = distribution;
+                        const updatedDistribution = { ...distribution };
+                        // Adjust edges based on index
+                        switch (edgeIndex) {
+                        case 0: // Left edge
+                            const newWidth = width + (x - newPoint.x);
+                            if (newWidth > minDimension && newPoint.x <= x + width + 1) {
+                                updatedDistribution.x = newPoint.x;
+                                updatedDistribution.width = newWidth;
+                            }                        
+                            const newHeight = height + (y - newPoint.y);
+                            if (newHeight > minDimension && newPoint.y <= y + height) {
+                                updatedDistribution.y = newPoint.y;
+                                updatedDistribution.height = newHeight;
+                            }                        
+                            break;
+                            
+                        default:
+                            break;
+                        }
+                        return updatedDistribution;
+                    }
+                    return distribution;
+                })
+            );
+        } else if (type === "exit") {
+            setExits((prevExits) =>
+                prevExits.map((exit) => {
+                    if (exit.id === id) {
+                        const { x, y, width, height } = exit;
+
+                        const updatedExit = { ...exit };
+                        // Adjust edges based on index
+                        switch (edgeIndex) {
+                        case 0: // Left edge
+                            {
+                                const newWidth = width + (x - newPoint.x);
+                                if (newWidth > minDimension) {
+                                    updatedExit.x = newPoint.x;
+                                    updatedExit.width = newWidth;
+                                }
+                                const newHeight = height + (y - newPoint.y);
+                                if (newHeight > minDimension) {
+                                    updatedExit.y = newPoint.y;
+                                    updatedExit.height = newHeight;
+                                }
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                        return updatedExit;
+                    }
+                    return exit;
+                })
+            );
+        }
+    };
 
 
     

@@ -40,7 +40,7 @@ const GeometryShape = ({ polygon, config, onEdgeDrag }) => {
                             x: e.target.x() / config.scale,
                             y: e.target.y() / config.scale,
                         };
-                        onEdgeDrag(pos, midpoint.edgeIndex, polygon.id);
+                        onEdgeDrag(pos, midpoint.edgeIndex, polygon.id, "geometry");
                     }}
                 />
             ))}

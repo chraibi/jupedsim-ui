@@ -53,19 +53,14 @@ const Canvas = ({
             style={{ background: "#ddd" }}
         >
             <Layer>
-                
                 {config.showGrid && renderGrid()}
-
-               
-
-                    
                     {/* Geometry */}
                     {geometry.map((polygon, i) => (
                         <GeometryShape
                             key={i}
                             polygon={polygon}
                             config={config}
-                            onEdgeDrag={handleEdgeDrag}
+                            onEdgeDrag={(newPoint, edgeIndex) => handleEdgeDrag(newPoint, edgeIndex, polygon.id, "geometry")}
                         />
                     ))}
 
@@ -133,7 +128,12 @@ const Canvas = ({
 
                     {/* Waypoints */}
                     {waypoints.map((w, i) => (
-                        <Waypoint key={i} waypoint={w} dragHandlers={waypointsDragHandlers} updateConnections={updateConnections} config={config} />
+                        <Waypoint key={i}
+                                  waypoint={w}
+                                  dragHandlers={waypointsDragHandlers}
+                                  updateConnections={updateConnections}
+                                  config={config}
+                        />
                     ))}
                     {/* Current Waypoint */}
                     {currentWaypoint && (
@@ -142,17 +142,28 @@ const Canvas = ({
 
                     {/* Exits */}
                     {exits.map((e, i) => (
-                        <Exit key={i} exit={e} dragHandlers={exitsDragHandlers}  updateConnections={updateConnections} config={config} />                   
+                        <Exit key={i} exit={e} dragHandlers={exitsDragHandlers}  updateConnections={updateConnections}
+                              config={config}                              
+                              onEdgeDrag={(newPoint, edgeIndex) => handleEdgeDrag(newPoint, edgeIndex, e.id, "exit")}
+                        />                   
                     ))}
 
                     {/* Current Exit */}
                     {currentExit && (
-                        <Exit  exit={currentExit} dragHandlers={exitsDragHandlers} config={config} />                   
+                        <Exit
+                            exit={currentExit}
+                            dragHandlers={exitsDragHandlers}
+                            config={config}
+                            onEdgeDrag={(newPoint, edgeIndex) => handleEdgeDrag(newPoint, edgeIndex, "exit")}
+                        />                   
                     )}
 
                     {/* Distributions */}
                     {distributions.map((d, i) => (
-                        <Distribution key={i} distribution={d} dragHandlers={distributionsDragHandlers}  updateConnections={updateConnections} config={config} />
+                        <Distribution key={i} distribution={d} dragHandlers={distributionsDragHandlers}  updateConnections={updateConnections}
+                                      config={config}
+                                      onEdgeDrag={(newPoint, edgeIndex) => handleEdgeDrag(newPoint, edgeIndex, d.id, "distribution")}
+                        />
                     ))}
 
                     {/* Current Distribution */}
