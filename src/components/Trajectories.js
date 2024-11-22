@@ -1,15 +1,12 @@
-
-
-import { Shape } from "react-konva";
-
-
-import React, { useEffect, useState } from "react";
-import { Layer, Circle } from "react-konva";
+import React, { useEffect, useState, useRef } from "react";
+import { Circle } from "react-konva";
 
 const CanvasTrajectoryVisualizer = ({ trajectoryFile }) => {
   const [trajectories, setTrajectories] = useState([]);
-  const [positions, setPositions] = useState([]); // Current positions of the circles
-  const [frame, setFrame] = useState(0); // Current animation frame
+  const [positions, setPositions] = useState([]);
+  const [frame, setFrame] = useState(0);
+  const maxFrameRef = useRef(0); // Maximum frame in the trajectory data
+  const animationRef = useRef(null); // Animation frame reference
 
   useEffect(() => {
     // Fetch and parse trajectory data
@@ -29,7 +26,27 @@ const CanvasTrajectoryVisualizer = ({ trajectoryFile }) => {
           })
           .filter(Boolean);
 
+        const maxFrame = Math.max(...parsedTrajectories.map((t) => t.fr));
+        maxFrameRef.current = maxFrame;
+
+        // Set trajectories
         setTrajectories(parsedTrajectories);
+
+        // Initialize positions
+        const initialPositions = Array.from(
+          new Set(parsedTrajectories.map((t) => t.id))
+        ).map((id) => {
+          const firstPoint = parsedTrajectories.find(
+            (t) => t.id === id && t.fr === 0
+          );
+          return {
+            id,
+            x: firstPoint?.x || 0,
+            y: firstPoint?.y || 0,
+          };
+        });
+
+        setPositions(initialPositions);
       })
       .catch((error) => console.error("Error loading trajectory file:", error));
   }, [trajectoryFile]);
@@ -37,7 +54,6 @@ const CanvasTrajectoryVisualizer = ({ trajectoryFile }) => {
   useEffect(() => {
     if (trajectories.length === 0) return;
 
-    // Determine bounds for scaling
     const xs = trajectories.map((t) => t.x);
     const ys = trajectories.map((t) => t.y);
     const sceneMinX = Math.min(...xs);
@@ -45,83 +61,51 @@ const CanvasTrajectoryVisualizer = ({ trajectoryFile }) => {
     const sceneMinY = Math.min(...ys);
     const sceneMaxY = Math.max(...ys);
 
-    const stageWidth = 800; // Adjust based on your stage size
+    const stageWidth = 800;
     const stageHeight = 600;
     const scaleX = (x) =>
       ((x - sceneMinX) / (sceneMaxX - sceneMinX)) * stageWidth;
     const scaleY = (y) =>
       stageHeight - ((y - sceneMinY) / (sceneMaxY - sceneMinY)) * stageHeight;
 
-    // Initialize positions for each unique trajectory ID
-    const initialPositions = Array.from(
-      new Set(trajectories.map((t) => t.id))
-    ).map((id) => {
-      const firstPoint = trajectories.find((t) => t.id === id && t.fr === 0);
-      return {
-        id,
-        x: scaleX(firstPoint?.x || 0),
-        y: scaleY(firstPoint?.y || 0),
-      };
-    });
-
-    setPositions(initialPositions);
-
-    // Start the animation
+    // Animation logic
     const animate = () => {
-      setFrame((prevFrame) => prevFrame + 5); // Increment frame
-      requestAnimationFrame(animate);
+      setFrame((prevFrame) => {
+        if (prevFrame >= maxFrameRef.current) {
+          cancelAnimationFrame(animationRef.current);
+          return prevFrame; // Stop animation
+        }
+        return prevFrame + 1;
+      });
+
+      // Update positions
+      const updatedPositions = positions.map((pos) => {
+        const nextPoint = trajectories.find(
+          (t) => t.id === pos.id && t.fr === frame
+        );
+        if (nextPoint) {
+          return {
+            ...pos,
+            x: scaleX(nextPoint.x),
+            y: scaleY(nextPoint.y),
+          };
+        }
+        return pos;
+      });
+
+      setPositions(updatedPositions);
+
+      // Schedule next frame
+      animationRef.current = requestAnimationFrame(animate);
     };
-    animate();
-  }, [trajectories]);
 
-  // Update positions based on the current frame
-  useEffect(() => {
-    if (trajectories.length === 0 || positions.length === 0) return;
+    animationRef.current = requestAnimationFrame(animate); // Start animation
 
-    const xs = trajectories.map((t) => t.x);
-    const ys = trajectories.map((t) => t.y);
-    const sceneMinX = Math.min(...xs);
-    const sceneMaxX = Math.max(...xs);
-    const sceneMinY = Math.min(...ys);
-    const sceneMaxY = Math.max(...ys);
+    return () => cancelAnimationFrame(animationRef.current); // Cleanup on unmount
+  }, [trajectories, positions, frame]);
 
-    const stageWidth = 800; // Adjust based on your stage size
-    const stageHeight = 600;
-    const scaleX = (x) =>
-      ((x - sceneMinX) / (sceneMaxX - sceneMinX)) * stageWidth;
-    const scaleY = (y) =>
-      stageHeight - ((y - sceneMinY) / (sceneMaxY - sceneMinY)) * stageHeight;
-
-    const updatedPositions = positions.map((pos) => {
-      const nextPoint = trajectories.find(
-        (t) => t.id === pos.id && t.fr === frame
-      );
-      if (nextPoint) {
-        return {
-          ...pos,
-          x: scaleX(nextPoint.x),
-          y: scaleY(nextPoint.y),
-        };
-      }
-      return pos; // Keep the previous position if no point exists for this frame
-    });
-
-    setPositions(updatedPositions);
-  }, [frame, trajectories, positions]);
-
-    console.log("Rendered Circles:", positions.map((pos) => (
-  <Circle
-    key={pos.id}
-    x={pos.x}
-    y={pos.y}
-    radius={5}
-    fill="red"
-    stroke="blue"
-    strokeWidth={1}
-  />
-)));
-    return (
-        <>
+  return (
+    <>
       {positions.map((pos) => (
         <Circle
           key={pos.id}
@@ -133,10 +117,8 @@ const CanvasTrajectoryVisualizer = ({ trajectoryFile }) => {
           strokeWidth={1}
         />
       ))}
-      </>
+    </>
   );
 };
 
 export default CanvasTrajectoryVisualizer;
-
-
