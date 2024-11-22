@@ -6,6 +6,7 @@ import Header from './components/Header';
 import Canvas from './components/Canvas';
 import Toolbar from './components/Toolbar';
 
+
 import GeometryWarnings from './hooks/GeometryWarnings';
 import useGrid from "./hooks/useGrid";
 //import useDragHandlers from "./hooks/useDragHandlers";
@@ -424,6 +425,7 @@ const createDragHandlers = (setElements, elements) => ({
                 exportData={exportData}
                 logo={logo}
             />
+            
             {/* Main Content Area */}
             <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
                 {/* Toolbar above the Canvas */}
@@ -431,7 +433,7 @@ const createDragHandlers = (setElements, elements) => ({
                     config={config}
                     setConfig={setConfig}
                     mousePosition={mousePosition}
-                />
+                />              
                 <div style={{ flex: 1 }}>
                     <Canvas
                         config={config}
@@ -466,8 +468,10 @@ const createDragHandlers = (setElements, elements) => ({
           geometry={geometry}
           isDragging={isDragging}
           draggedItem={draggedItem}
-        />
+            />
+        
         </div>
+        
          
     );
 };

@@ -3,16 +3,18 @@
 // import { ToolContext } from "../context/ToolContext";
 // import useGrid from "../hooks/useGrid";
 // import useDragHandlers from "../hooks/useDragHandlers";
-import React from "react";
+import React, { useEffect } from "react";
 import { Stage, Layer, Line} from "react-konva";
 import { isPointInPolygon } from '../utils/geometryUtils';
-
+import CanvasTrajectoryVisualizer from '../components/Trajectories';
 import GeometryShape from './GeometryShape'
 import Waypoint from './WayPoint'
 import Exit from './Exit'
 import Distribution from './Distribution'
 import ConnectionLine from './ConnectionLine'
 import PropTypes from 'prop-types';
+
+
 
 const Canvas = ({
     config,
@@ -42,8 +44,9 @@ const Canvas = ({
    
 
     return (
-        <div style={{ position: "relative" }}>
 
+        <div style={{ position: "relative" }}>
+      
         <Stage
             width={window.innerWidth * 0.75}
             height={window.innerHeight}
@@ -52,6 +55,7 @@ const Canvas = ({
             onDblClick={handleDoubleClick}
             style={{ background: "#ddd" }}
         >
+                
             <Layer>
                 {config.showGrid && renderGrid()}
                     {/* Geometry */}
@@ -63,7 +67,7 @@ const Canvas = ({
                             onEdgeDrag={(newPoint, edgeIndex) => handleEdgeDrag(newPoint, edgeIndex, polygon.id, "geometry")}
                         />
                     ))}
-
+                <CanvasTrajectoryVisualizer trajectoryFile="/file.txt" />
                     {/* Alignment Guides */}
                     {config.showAlignmentGuides && alignmentGuides.x && (
                         <Line

@@ -49,12 +49,7 @@ const GeometryWarnings = ({
                 if (warning) newWarnings.push(warning);
             });
         };
-        console.log("isDragging")
-        console.log(isDragging)
-        console.log("DraggedItem")
-        console.log(draggedItem)
         if (isDragging && draggedItem) {
-            console.log(draggedItem)
             // Exclude the dragged item from warnings
             checkAllObjects(
                 waypoints.filter((wp) => wp.id !== draggedItem.id || draggedItem.type !== "waypoint"),
