@@ -1,16 +1,19 @@
-export const isPointInPolygon = (x, y, points) => {
-    let isInside = false;
-    const n = points.length / 2;
-    for (let i = 0, j = n - 1; i < n; j = i++) {
-        const xi = points[i * 2];
-        const yi = points[i * 2 + 1];
-        const xj = points[j * 2];
-        const yj = points[j * 2 + 1];
-        const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-        if (intersect) isInside = !isInside;
-    }
-    return isInside;
+
+export const isPointInPolygon = (x, y, polygon) => {
+  let inside = false;
+
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i][0], yi = polygon[i][1];
+    const xj = polygon[j][0], yj = polygon[j][1];
+
+    const intersect = yi > y !== yj > y &&
+                      x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+
+  return inside;
 };
+
 
 export const isPointInCircle = (x, y, cx, cy, radius) => {
     const distanceSquared = (x - cx) ** 2 + (y - cy) ** 2;

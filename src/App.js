@@ -6,6 +6,7 @@ import Header from './components/Header';
 import Canvas from './components/Canvas';
 import Toolbar from './components/Toolbar';
 
+import GeometryWarnings from './hooks/GeometryWarnings';
 import useGrid from "./hooks/useGrid";
 //import useDragHandlers from "./hooks/useDragHandlers";
 import { generateId, clamp } from './utils/idUtils';
@@ -36,8 +37,14 @@ const App = () => {
     const [currentExit, setCurrentExit] = useState(null);
     const [currentWaypoint, setCurrentWaypoint] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [draggedItem, setDraggedItem] = useState(null);
+    const [warnings, setWarnings] = useState(null);
     const [alignmentGuides, setAlignmentGuides] = useState({ x: null, y: null });
 
+
+
+
+    
     useEscapeHandler({
         resetTool: () => setTool(null),
         resetGeometryPoints: () => setCurrentGeometryPoints(null),
@@ -263,6 +270,11 @@ const App = () => {
 
         setConnections(updatedConnections);
     };
+
+    const handleDragStart = (draggedElement) => {
+        setIsDragging(true);
+        setDraggedItem(draggedElement);
+    };
     const handleDrag = (updatedElement, i, setElements, elements, e) => {
         const pos = e.target.position();
         let scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
@@ -285,22 +297,30 @@ const App = () => {
     
     const handleDragEnd = (e) => {
         setAlignmentGuides({ x: null, y: null }); // Clear guides
+        setIsDragging(false);
+        setDraggedItem(null);
     };
-    const createDragHandlers = (setElements, elements) => ({
-        onDragStart: () => setIsDragging(true),
-        onDragMove: (e, i) => {
-            setIsDragging(true);
-            handleDrag(elements[i], i, setElements, elements, e);
-        },
-        onDragEnd: (e, i) => {
-            setIsDragging(false);
-            handleDrag(elements[i], i, setElements, elements, e);
-        },
-    });
-    
-    const exitsDragHandlers = createDragHandlers(setExits, exits);
-    const distributionsDragHandlers = createDragHandlers(setDistributions, distributions);
-    const waypointsDragHandlers = createDragHandlers(setWaypoints, waypoints);
+
+const createDragHandlers = (setElements, elements) => ({
+    onDragStart: (e, element) => {
+        setIsDragging(true);
+        setDraggedItem(element); // Pass the complete element with type
+    },
+    onDragMove: (e, updatedElement) => {
+        const { id } = updatedElement; // Use the updated element details
+        setElements(
+            elements.map((el) => (el.id === id ? updatedElement : el)) // Update position
+        );
+    },
+    onDragEnd: (e, element) => {
+        setIsDragging(false);
+        setDraggedItem(null); // Reset dragged item
+    },
+});
+   
+    const exitsDragHandlers = createDragHandlers(setExits, exits, "exit");
+    const distributionsDragHandlers = createDragHandlers(setDistributions, distributions, "distribution");
+    const waypointsDragHandlers = createDragHandlers(setWaypoints, waypoints, "waypoint");
 
     const handleDragStage = (e) => {
         const pos = e.target.position();
@@ -327,13 +347,6 @@ const App = () => {
         })
     );
 };
-
-    // const handleWheelZoom = (e) => {
-    //     e.evt.preventDefault();
-    //     const zoomBy = 1.05;
-    //     const newScale = e.evt.deltaY > 0 ? config.scale / zoomBy : config.scale * zoomBy;
-    //     setConfig((prev) => ({ ...prev, scale: newScale }));
-    // };
 
 
     
@@ -379,11 +392,20 @@ const App = () => {
                         currentConnectionPath={currentConnectionPath}
                         connections={connections}
                         updateConnections={updateConnections}
-                        handleEdgeDrag={handleEdgeDrag} 
+                        handleEdgeDrag={handleEdgeDrag}
                     />
                 </div>
             </div>
+            <GeometryWarnings 
+          waypoints={waypoints}
+          exits={exits}
+          distributions={distributions}
+          geometry={geometry}
+          isDragging={isDragging}
+          draggedItem={draggedItem}
+        />
         </div>
+         
     );
 };
 

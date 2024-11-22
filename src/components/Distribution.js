@@ -11,7 +11,9 @@ const Distribution = ({ distribution, dragHandlers,  updateConnections, config }
         strokeWidth={2}
         fill="rgba(255, 165, 0, 0.2)"
         draggable
-        onDragStart={dragHandlers.onDragStart}
+          
+          onDragStart={(e) => dragHandlers.onDragStart(e, { ...distribution, type: "Distribution" })}
+
         onDragMove={(e) => {
             const pos = e.target.position();
             const updatedDistribution = {
@@ -22,7 +24,7 @@ const Distribution = ({ distribution, dragHandlers,  updateConnections, config }
             dragHandlers.onDragMove(e, updatedDistribution); // Update state
             updateConnections(updatedDistribution); // Update connections
         }}
-        onDragEnd={(e) => dragHandlers.onDragEnd(e, distribution.id)}
+          onDragEnd={(e) => dragHandlers.onDragEnd(e, { ...distribution, type: "Distribution"})}
     />
 );
 

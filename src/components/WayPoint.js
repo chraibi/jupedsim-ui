@@ -8,7 +8,9 @@ const Waypoint = ({ waypoint, dragHandlers,updateConnections, config }) => (
         radius={waypoint.radius * config.scale}
         fill="purple"
         draggable
-        onDragStart={dragHandlers.onDragStart}
+         
+         onDragStart={(e) => dragHandlers.onDragStart(e, { ...waypoint, type: "Waypoint" })}
+
         onDragMove={(e) => {
             const pos = e.target.position();
             const updatedWaypoint = {
@@ -19,7 +21,7 @@ const Waypoint = ({ waypoint, dragHandlers,updateConnections, config }) => (
             dragHandlers.onDragMove(e, updatedWaypoint); // Update state
             updateConnections(updatedWaypoint); // Update connections
         }}
-         onDragEnd={(e) => dragHandlers.onDragEnd(e, waypoint.id)}
+         onDragEnd={(e) => dragHandlers.onDragEnd(e, {...waypoint, type: "Waypoint"})}
          />
 );
 
