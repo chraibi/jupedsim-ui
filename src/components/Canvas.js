@@ -3,7 +3,7 @@
 // import { ToolContext } from "../context/ToolContext";
 // import useGrid from "../hooks/useGrid";
 // import useDragHandlers from "../hooks/useDragHandlers";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Stage, Layer, Line} from "react-konva";
 import { isPointInPolygon } from '../utils/geometryUtils';
 import CanvasTrajectoryVisualizer from '../components/Trajectories';
@@ -41,12 +41,32 @@ const Canvas = ({
     handleEdgeDrag,
 }) => {
  
-   
+    const [isVisualizationVisible, setIsVisualizationVisible] = useState(false);
+
+  const handleStartVisualization = () => {
+    setIsVisualizationVisible(true); // Trigger visualization
+  };
+    const toggleVisualization = () => {
+    setIsVisualizationVisible((prevState) => !prevState); // Toggle visualization state
+  };
 
     return (
 
         <div style={{ position: "relative" }}>
-      
+            <button
+        onClick={toggleVisualization}
+        style={{
+          marginBottom: "10px",
+          padding: "10px 20px",
+          background: isVisualizationVisible ? "#FF4136" : "#007BFF",
+          color: "#FFF",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+        }}
+      >
+        {isVisualizationVisible ? "Stop Visualization" : "Start Visualization"}
+      </button>
         <Stage
             width={window.innerWidth * 0.75}
             height={window.innerHeight}
@@ -67,7 +87,9 @@ const Canvas = ({
                             onEdgeDrag={(newPoint, edgeIndex) => handleEdgeDrag(newPoint, edgeIndex, polygon.id, "geometry")}
                         />
                     ))}
-                <CanvasTrajectoryVisualizer trajectoryFile="/file.txt" />
+                {isVisualizationVisible && (
+                    <CanvasTrajectoryVisualizer trajectoryFile="/file.txt" />
+                )}
                     {/* Alignment Guides */}
                     {config.showAlignmentGuides && alignmentGuides.x && (
                         <Line
