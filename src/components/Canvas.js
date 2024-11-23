@@ -3,7 +3,8 @@
 // import { ToolContext } from "../context/ToolContext";
 // import useGrid from "../hooks/useGrid";
 // import useDragHandlers from "../hooks/useDragHandlers";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import styled from "styled-components";
 import { Stage, Layer, Line} from "react-konva";
 import { isPointInPolygon } from '../utils/geometryUtils';
 import CanvasTrajectoryVisualizer from '../components/Trajectories';
@@ -13,6 +14,8 @@ import Exit from './Exit'
 import Distribution from './Distribution'
 import ConnectionLine from './ConnectionLine'
 import PropTypes from 'prop-types';
+const DELAY_TIME = 100
+
 
 
 
@@ -41,49 +44,60 @@ const Canvas = ({
     updateConnections,
     handleEdgeDrag,
 }) => {
-    
-    const stageWidth = window.innerWidth * 0.75;
-    const stageHeight = window.innerHeight;
+
+    const stageWidth = useMemo(() => window.innerWidth * 0.75, []);
+    const stageHeight = useMemo(() => window.innerHeight, []);
+
+    // const stageWidth = window.innerWidth * 0.75;
+    // const stageHeight = window.innerHeight;
     
     const [isVisualizationVisible, setIsVisualizationVisible] = useState(false);
-    
+    const [disableFirstLayer, setDisableFirstLayer] = useState(false); // To disable the first layer after delay
     const layerRef = useRef();
-    
+
     const startVisualization = () => {
         // Set visualization visibility
         setIsVisualizationVisible(true);
-        
-        setMousePosition({ x: stageWidth / 2, y: stageHeight / 2 });
+        setDisableFirstLayer(false); // Enable the first layer initially
+        // Disable the first layer after 1 second
+        const timeout = setTimeout(() => setDisableFirstLayer(true), DELAY_TIME);
+        return () => clearTimeout(timeout);
     };
     
     const stopVisualization = () => {
         setIsVisualizationVisible(false);
+        setDisableFirstLayer(false); 
     };
-    
-    const toggleVisualization = () => {
-        setMousePosition({ x: stageWidth / 2, y: stageHeight / 2 });
-
-        setIsVisualizationVisible((prevState) => !prevState); // Toggle visualization state
-    };
-    
-    
+    const renderTrajectoryVisualizer = (key) => (
+        <CanvasTrajectoryVisualizer
+            key={key}
+            trajectoryFile="/file.txt"
+            stageWidth={stageWidth}
+            stageHeight={stageHeight}
+            isVisible={isVisualizationVisible}
+        />
+    );
+    // Styled Button Component
+    const StyledButton = styled.button`
+  margin-bottom: 10px;
+  padding: 10px 20px;
+  background: ${(props) => (props.isActive ? "#FF4136" : "#007BFF")};
+  color: ${(props) => (props.isActive ? "#000000" : "#FFFFFF")};
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  &:hover {
+    opacity: 0.9;
+  }
+`;
 
     return (
         <div style={{ position: "relative" }}>
-            <button
-                onClick={toggleVisualization}
-                style={{
-                    marginBottom: "10px",
-                    padding: "10px 20px",
-                    background: isVisualizationVisible ? "#FF4136" : "#007BFF",
-                    color: "#FFF",
-                    border: "none",
-                    borderRadius: "5px",
-                    cursor: "pointer",
-                }}
-            >
-                {isVisualizationVisible ? "Stop Visualization" : "Start Visualization"}
-            </button>
+            <StyledButton
+                isActive={isVisualizationVisible}
+                onClick={isVisualizationVisible ? stopVisualization : startVisualization}
+            >               {isVisualizationVisible ? "Stop Visualization" : "Start Visualization"}
+            </StyledButton>
             
             <Stage
                 width={window.innerWidth * 0.75}
@@ -93,19 +107,20 @@ const Canvas = ({
                 onDblClick={handleDoubleClick}
                 style={{ background: "#ddd" }}
             >
-                <Layer ref={layerRef}>
-                    {isVisualizationVisible && (                        
-                        <CanvasTrajectoryVisualizer
-                            trajectoryFile="/file.txt"
-                            stageWidth={window.innerWidth * 0.75}
-                            stageHeight={window.innerHeight}
-                            isVisible={isVisualizationVisible}
-                            
-                        />
-                    )}
-                </Layer>     
+                
+                {!disableFirstLayer && (
+                    <Layer ref={layerRef}>
+                        {isVisualizationVisible && (
+                            renderTrajectoryVisualizer('firstLayer')
+                        )}
+                    </Layer>
+                )}
                 <Layer>
                     {config.showGrid && renderGrid()}
+                    {isVisualizationVisible &&(
+                        renderTrajectoryVisualizer('secondLayer')                            
+                    )}
+                    
                     {/* Geometry */}
                     {geometry.map((polygon, i) => (
                         <GeometryShape
