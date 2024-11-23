@@ -1,7 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Circle } from "react-konva";
 
-const CanvasTrajectoryVisualizer = ({ trajectoryFile }) => {
+const CanvasTrajectoryVisualizer = ({ trajectoryFile,
+                                      stageWidth,
+                                      isVisualizationVisible,
+                                      stageHeight 
+                                    }) => {
     const [trajectories, setTrajectories] = useState([]);
     const [positions, setPositions] = useState([]);
     const [frame, setFrame] = useState(0);
@@ -55,7 +59,7 @@ const CanvasTrajectoryVisualizer = ({ trajectoryFile }) => {
     }, [trajectoryFile]);
 
     const layerRef = useRef(null); 
-    
+                                        
     useEffect(() => {
         if (trajectories.length === 0) return;
         
@@ -66,8 +70,6 @@ const CanvasTrajectoryVisualizer = ({ trajectoryFile }) => {
         const sceneMinY = Math.min(...ys);
         const sceneMaxY = Math.max(...ys);
 
-        const stageWidth = 800;
-        const stageHeight = 600;
         const scaleX = (x) =>
               ((x - sceneMinX) / (sceneMaxX - sceneMinX)) * stageWidth;
         const scaleY = (y) =>
@@ -84,7 +86,7 @@ const CanvasTrajectoryVisualizer = ({ trajectoryFile }) => {
                 
                 return prevFrame + 1;
             });
-            
+
             // Update positions
             const updatedPositions = positions.map((pos) => {
                 const nextPoint = trajectories.find(
@@ -112,8 +114,8 @@ const CanvasTrajectoryVisualizer = ({ trajectoryFile }) => {
         animationRef.current = requestAnimationFrame(animate); // Start animation
 
         return () => cancelAnimationFrame(animationRef.current); // Cleanup on unmount
-    }, [trajectories, positions, frame]);
-
+     }, [trajectories, positions, frame]);
+                                        
     return (
         <>
             {positions.map((pos) => (

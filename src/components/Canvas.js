@@ -3,7 +3,7 @@
 // import { ToolContext } from "../context/ToolContext";
 // import useGrid from "../hooks/useGrid";
 // import useDragHandlers from "../hooks/useDragHandlers";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Stage, Layer, Line} from "react-konva";
 import { isPointInPolygon } from '../utils/geometryUtils';
 import CanvasTrajectoryVisualizer from '../components/Trajectories';
@@ -26,6 +26,7 @@ const Canvas = ({
     alignmentGuides,
     currentGeometryPoints,
     mousePosition,
+    setMousePosition,
     waypoints,
     waypointsDragHandlers,
     exits,
@@ -40,44 +41,71 @@ const Canvas = ({
     updateConnections,
     handleEdgeDrag,
 }) => {
- 
+    
+    const stageWidth = window.innerWidth * 0.75;
+    const stageHeight = window.innerHeight;
+    
     const [isVisualizationVisible, setIsVisualizationVisible] = useState(false);
-
-  const handleStartVisualization = () => {
-    setIsVisualizationVisible(true); // Trigger visualization
-  };
+    
+    const layerRef = useRef();
+    
+    const startVisualization = () => {
+        // Set visualization visibility
+        setIsVisualizationVisible(true);
+        
+        setMousePosition({ x: stageWidth / 2, y: stageHeight / 2 });
+    };
+    
+    const stopVisualization = () => {
+        setIsVisualizationVisible(false);
+    };
+    
     const toggleVisualization = () => {
-    setIsVisualizationVisible((prevState) => !prevState); // Toggle visualization state
-  };
+        setMousePosition({ x: stageWidth / 2, y: stageHeight / 2 });
+
+        setIsVisualizationVisible((prevState) => !prevState); // Toggle visualization state
+    };
+    
+    
 
     return (
-
         <div style={{ position: "relative" }}>
             <button
-        onClick={toggleVisualization}
-        style={{
-          marginBottom: "10px",
-          padding: "10px 20px",
-          background: isVisualizationVisible ? "#FF4136" : "#007BFF",
-          color: "#FFF",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-        }}
-      >
-        {isVisualizationVisible ? "Stop Visualization" : "Start Visualization"}
-      </button>
-        <Stage
-            width={window.innerWidth * 0.75}
-            height={window.innerHeight}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onDblClick={handleDoubleClick}
-            style={{ background: "#ddd" }}
-        >
-                
-            <Layer>
-                {config.showGrid && renderGrid()}
+                onClick={toggleVisualization}
+                style={{
+                    marginBottom: "10px",
+                    padding: "10px 20px",
+                    background: isVisualizationVisible ? "#FF4136" : "#007BFF",
+                    color: "#FFF",
+                    border: "none",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                }}
+            >
+                {isVisualizationVisible ? "Stop Visualization" : "Start Visualization"}
+            </button>
+            
+            <Stage
+                width={window.innerWidth * 0.75}
+                height={window.innerHeight}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onDblClick={handleDoubleClick}
+                style={{ background: "#ddd" }}
+            >
+                <Layer ref={layerRef}>
+                    {isVisualizationVisible && (                        
+                        <CanvasTrajectoryVisualizer
+                            trajectoryFile="/file.txt"
+                            stageWidth={window.innerWidth * 0.75}
+                            stageHeight={window.innerHeight}
+                            isVisible={isVisualizationVisible}
+                            
+                        />
+                    )}
+                </Layer>     
+                <Layer>
+                    {config.showGrid && renderGrid()}
                     {/* Geometry */}
                     {geometry.map((polygon, i) => (
                         <GeometryShape
@@ -87,9 +115,7 @@ const Canvas = ({
                             onEdgeDrag={(newPoint, edgeIndex) => handleEdgeDrag(newPoint, edgeIndex, polygon.id, "geometry")}
                         />
                     ))}
-                {isVisualizationVisible && (
-                    <CanvasTrajectoryVisualizer trajectoryFile="/file.txt" />
-                )}
+                    
                     {/* Alignment Guides */}
                     {config.showAlignmentGuides && alignmentGuides.x && (
                         <Line
@@ -215,54 +241,54 @@ const Canvas = ({
                         />
                     )}
                     
-                    </Layer>
-                     </Stage>
-                     </div>
-                    );
-                };
-                     
-
-        // PropTypes validation
-        Canvas.propTypes = {
-            config: PropTypes.shape({
-                gridSpacing: PropTypes.number.isRequired,
-                showGrid: PropTypes.bool.isRequired,
-                scale: PropTypes.number.isRequired,
-                showAlignmentGuides: PropTypes.bool,
-                snapThreshold: PropTypes.number.isRequired,
-            }).isRequired,
-            handleMouseDown: PropTypes.func.isRequired,
-            handleMouseMove: PropTypes.func.isRequired,
-            handleDoubleClick: PropTypes.func.isRequired,
-            renderGrid: PropTypes.func.isRequired,
-            geometry: PropTypes.arrayOf(PropTypes.object).isRequired,
-            alignmentGuides: PropTypes.shape({
-                x: PropTypes.number,
-                y: PropTypes.number,
-            }),
-            currentGeometryPoints: PropTypes.arrayOf(PropTypes.number),
-            mousePosition: PropTypes.shape({
-                x: PropTypes.number,
-                y: PropTypes.number,
-            }),
-            waypoints: PropTypes.arrayOf(PropTypes.object).isRequired,
-            waypointsDragHandlers: PropTypes.object.isRequired,
-            exits: PropTypes.arrayOf(PropTypes.object).isRequired,
-            exitsDragHandlers: PropTypes.object.isRequired,
-            distributions: PropTypes.arrayOf(PropTypes.object).isRequired,
-            distributionsDragHandlers: PropTypes.object.isRequired,
-            currentRect: PropTypes.object,
-            currentExit: PropTypes.object,
-            currentWaypoint: PropTypes.object,
-            currentConnectionPath: PropTypes.shape({
-                x: PropTypes.number.isRequired,
-                y: PropTypes.number.isRequired,
-                tempX: PropTypes.number,
-                tempY: PropTypes.number,
-            }),
-            connections: PropTypes.arrayOf(PropTypes.object).isRequired,
-            updateConnections: PropTypes.func.isRequired,
-        };
+                </Layer>
+            </Stage>
+        </div>
+    );
+};
 
 
-        export default Canvas;
+// PropTypes validation
+Canvas.propTypes = {
+    config: PropTypes.shape({
+        gridSpacing: PropTypes.number.isRequired,
+        showGrid: PropTypes.bool.isRequired,
+        scale: PropTypes.number.isRequired,
+        showAlignmentGuides: PropTypes.bool,
+        snapThreshold: PropTypes.number.isRequired,
+    }).isRequired,
+    handleMouseDown: PropTypes.func.isRequired,
+    handleMouseMove: PropTypes.func.isRequired,
+    handleDoubleClick: PropTypes.func.isRequired,
+    renderGrid: PropTypes.func.isRequired,
+    geometry: PropTypes.arrayOf(PropTypes.object).isRequired,
+    alignmentGuides: PropTypes.shape({
+        x: PropTypes.number,
+        y: PropTypes.number,
+    }),
+    currentGeometryPoints: PropTypes.arrayOf(PropTypes.number),
+    mousePosition: PropTypes.shape({
+        x: PropTypes.number,
+        y: PropTypes.number,
+    }),
+    waypoints: PropTypes.arrayOf(PropTypes.object).isRequired,
+    waypointsDragHandlers: PropTypes.object.isRequired,
+    exits: PropTypes.arrayOf(PropTypes.object).isRequired,
+    exitsDragHandlers: PropTypes.object.isRequired,
+    distributions: PropTypes.arrayOf(PropTypes.object).isRequired,
+    distributionsDragHandlers: PropTypes.object.isRequired,
+    currentRect: PropTypes.object,
+    currentExit: PropTypes.object,
+    currentWaypoint: PropTypes.object,
+    currentConnectionPath: PropTypes.shape({
+        x: PropTypes.number.isRequired,
+        y: PropTypes.number.isRequired,
+        tempX: PropTypes.number,
+        tempY: PropTypes.number,
+    }),
+    connections: PropTypes.arrayOf(PropTypes.object).isRequired,
+    updateConnections: PropTypes.func.isRequired,
+};
+
+
+export default Canvas;

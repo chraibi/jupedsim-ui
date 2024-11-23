@@ -155,8 +155,69 @@ const App = () => {
             }
         }
     };
+    const throttle = (func, limit) => {
+        let lastFunc;
+        let lastRan;
+        return function (...args) {
+            if (!lastRan) {
+                func.apply(this, args);
+                lastRan = Date.now();
+            } else {
+                clearTimeout(lastFunc);
+                lastFunc = setTimeout(() => {
+                    if (Date.now() - lastRan >= limit) {
+                        func.apply(this, args);
+                        lastRan = Date.now();
+                    }
+                }, limit - (Date.now() - lastRan));
+            }
+        };
+    };
+    const throttledMouseMove = throttle((e) => {
+        const pos = e.target.getStage().getPointerPosition();
+        const scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
 
-    const handleMouseMove = (e) => {
+        setMousePosition(scaledPos);
+
+        if (tool === "geometry" && currentGeometryPoints) {
+            setMousePosition(scaledPos);
+        }
+        if (tool === "waypoint" && currentWaypoint) {
+            const radius = Math.sqrt(
+                (scaledPos.x - currentWaypoint.x) ** 2 + (scaledPos.y - currentWaypoint.y) ** 2
+            );
+            setCurrentWaypoint({ ...currentWaypoint, radius });
+        }
+        if (tool === "exit" && currentExit) {
+            setCurrentExit({
+                x: currentExit.x,
+                y: currentExit.y,
+                width: scaledPos.x - currentExit.x,
+                height: scaledPos.y - currentExit.y,
+            });
+        }
+        if (tool === "distribution" && currentRect) {
+            setCurrentRect({
+                x: currentRect.x,
+                y: currentRect.y,
+                width: scaledPos.x - currentRect.x,
+                height: scaledPos.y - currentRect.y,
+            });
+        }
+        if (tool === "connection" && currentConnectionPath) {
+            setCurrentConnectionPath({
+                ...currentConnectionPath,
+                tempX: scaledPos.x * config.scale,
+                tempY: scaledPos.y * config.scale,
+            });
+        }
+    }, 1000); // Throttle updates to every 50ms
+
+    const handleMouseMove = (e) => throttledMouseMove(e);
+
+
+    
+    const handleMouseMove2 = (e) => {
         const pos = e.target.getStage().getPointerPosition();
         const scaledPos = { x: pos.x / config.scale, y: pos.y / config.scale };
         setMousePosition(scaledPos);
@@ -445,6 +506,7 @@ const createDragHandlers = (setElements, elements) => ({
                         alignmentGuides={alignmentGuides}
                         currentGeometryPoints={currentGeometryPoints}
                         mousePosition={mousePosition}
+                        setMousePosition={setMousePosition}
                         waypoints={waypoints}
                         waypointsDragHandlers={waypointsDragHandlers}
                         exits={exits}
