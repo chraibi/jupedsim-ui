@@ -2,6 +2,39 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+
+## Installation 
+
+**Install nvm for Node.js version management.**
+
+Ensure you have nvm installed. If not
+follow the instructors [here](https://github.com/nvm-sh/nvm#installing-and-updating)
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+```
+
+Install and use Node.js version 18 for this project:
+
+```bash
+nvm install 18
+
+nvm use 18
+```
+
+**Install Project Dependencies**
+
+Navigate to the project directory and install the required dependencies:
+```bash
+npm install
+```
+
+**Start the Application**
+
+Run the development server:
+```bash
+npm start
+```
+
 ## Available Scripts
 
 In the project directory, you can run:
