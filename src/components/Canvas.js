@@ -16,7 +16,20 @@ import ConnectionLine from './ConnectionLine'
 import PropTypes from 'prop-types';
 const DELAY_TIME = 100
 
-
+const StyledButton = styled.button.attrs((props) => ({
+    isActive: undefined, // Remove isActive from DOM attributes
+}))`
+  margin-bottom: 10px;
+  padding: 10px 20px;
+  background: ${(props) => (props.isActive ? "#FF4136" : "#007BFF")};
+  color: ${(props) => (props.isActive ? "#000000" : "#FFFFFF")};
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  &:hover {
+    opacity: 0.9;
+  }
+`;
 
 
 const Canvas = ({
@@ -78,26 +91,18 @@ const Canvas = ({
         />
     );
     // Styled Button Component
-    const StyledButton = styled.button`
-  margin-bottom: 10px;
-  padding: 10px 20px;
-  background: ${(props) => (props.isActive ? "#FF4136" : "#007BFF")};
-  color: ${(props) => (props.isActive ? "#000000" : "#FFFFFF")};
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  &:hover {
-    opacity: 0.9;
-  }
-`;
+    
+ 
+
 
     return (
-        <div style={{ position: "relative" }}>
-            <StyledButton
+        <div style={{ position: "relative" }}>           
+             <StyledButton
                 isActive={isVisualizationVisible}
                 onClick={isVisualizationVisible ? stopVisualization : startVisualization}
-            >               {isVisualizationVisible ? "Stop Visualization" : "Start Visualization"}
-            </StyledButton>
+            >
+    {isVisualizationVisible ? "Stop Visualization" : "Start Visualization"}
+</StyledButton>
             
             <Stage
                 width={window.innerWidth * 0.75}
