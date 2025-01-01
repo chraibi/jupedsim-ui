@@ -1,0 +1,38 @@
+sequenceDiagram
+    participant Frontend
+    participant REST API
+    participant WebSocket Server
+    participant Simulation Engine
+    
+    %% Initial Setup Phase
+    Frontend->>REST API: POST /api/simulation/geometry
+    Note over Frontend,REST API: Send geometry, transitions, exits
+    REST API-->>Frontend: 201 Created (simulationId)
+    
+    %% Initialize Simulation
+    Frontend->>REST API: POST /api/simulation/{simulationId}/initialize
+    REST API->>Simulation Engine: Initialize simulation with geometry
+    Simulation Engine-->>REST API: Initialization complete
+    REST API-->>Frontend: 200 OK
+    
+    %% WebSocket Connection
+    Frontend->>WebSocket Server: Connect(simulationId)
+    WebSocket Server-->>Frontend: Connection established
+    
+    %% Start Simulation
+    Frontend->>REST API: POST /api/simulation/{simulationId}/start
+    REST API->>Simulation Engine: Start simulation
+    
+    %% Real-time Updates Loop
+    loop Simulation Running
+        Simulation Engine->>WebSocket Server: Agent positions/states
+        WebSocket Server->>Frontend: Update agents
+    end
+    
+    %% Optional: Pause/Resume
+    Frontend->>REST API: POST /api/simulation/{simulationId}/pause
+    REST API->>Simulation Engine: Pause simulation
+    
+    %% Cleanup
+    Frontend->>REST API: DELETE /api/simulation/{simulationId}
+    REST API->>Simulation Engine: Cleanup resources
