@@ -2,81 +2,53 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.websockets import WebSocketDisconnect
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
-
-import json
+from starlette.websockets import WebSocketState
+import jupedsim as jps
+from shapely import Polygon, GeometryCollection
+import pathlib
 import asyncio
-from typing import List, Dict
-from dataclasses import dataclass, asdict
 import logging
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-
-@dataclass
-class Agent:
-    id: int
-    position: tuple[float, float]
-    # Add other agent properties as needed
-
-
-class Simulation:
-    def __init__(self):
-        self.reset_agents()
-        self.speed = 0.1
-        self.iteration_count = 0
-        self.is_running = True
-
-    def reset_agents(self):
-        # Create agents in a more spread out pattern
-        self.agents = [
-            Agent(id=1, position=(0.4, 0.4)),
-            Agent(id=2, position=(0.8, 0.2)),
-            Agent(id=3, position=(0.2, 0.8)),
-            Agent(id=4, position=(0.8, 0.8)),
-            Agent(id=5, position=(0.55, 0.55)),
-        ]
-
-    def set_parameters(self, params: dict):
-        if "is_running" in params:
-            self.is_running = params["is_running"]
-
-        self.reset_agents()
-        logging.info(
-            f"Parameters updated: count={self.iteration_count}, running={self.is_running}"
-        )
-
-    def agent_count(self) -> int:
-        return len(self.agents)
-
-    def iterate(self):
-        self.iteration_count += 1
-        for agent in self.agents:
-            x, y = agent.position
-            # Circular motion for better visualization
-            new_x = x + self.speed * (0.5 - y)
-            new_y = y + self.speed * (x - 0.5)
-
-            # Keep within bounds
-            new_x = max(0, min(1, new_x))
-            new_y = max(0, min(1, new_y))
-
-            agent.position = (new_x, new_y)
-
-    def get_agent_positions(self) -> List[Dict]:
-        return [asdict(agent) for agent in self.agents]
-
 
 app = FastAPI()
-
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with your frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+def create_simulation():
+    area = GeometryCollection(Polygon([(0, 0), (10, 0), (10, 10), (0, 10)]))
+
+    simulation = jps.Simulation(
+        model=jps.CollisionFreeSpeedModel(),
+        geometry=area,
+        trajectory_writer=jps.SqliteTrajectoryWriter(
+            output_file=pathlib.Path("traj.sqlite"), every_nth_frame=1
+        ),
+    )
+
+    stage_id = simulation.add_waiting_set_stage([(5, 5)])
+    exit_id = simulation.add_exit_stage([(9, 4), (9, 6), (10, 6), (10, 4)])
+
+    journey = jps.JourneyDescription([stage_id, exit_id])
+    journey.set_transition_for_stage(
+        stage_id, jps.Transition.create_fixed_transition(exit_id)
+    )
+    journey_id = simulation.add_journey(journey)
+
+    agent_params = jps.CollisionFreeSpeedModelAgentParameters(
+        journey_id=journey_id, stage_id=stage_id, radius=0.3
+    )
+    for pos in [(1, 1), (2, 2), (3, 3), (4, 4)]:
+        agent_params.position = pos
+        simulation.add_agent(agent_params)
+
+    return simulation
 
 
 def validate_data(data):
@@ -88,58 +60,72 @@ def validate_data(data):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    simulation = None  # Initialize simulation object
-
+    simulation = None
+    speed = 100  # default max iterations
+    is_running = False
+    
     try:
-        while True:  # Keep connection open
+        while True:
+            # Check for incoming messages (non-blocking)
             try:
-                data = await asyncio.wait_for(websocket.receive_json(), timeout=0.1)
+                data = await asyncio.wait_for(websocket.receive_json(), timeout=0.01)
                 try:
                     validate_data(data)
                 except ValueError as e:
                     logging.info(f"Data validation error: {e}")
                     continue  # Skip this iteration
+                
                 logging.info(f"Got data: {data}")
+
+                # Handle reset
                 if "reset" in data and data["reset"]:
-                    simulation = Simulation()
+                    simulation = create_simulation()
                     logging.info("Simulation reset")
 
-                if "is_running" in data and data["is_running"]:
-                    if simulation is None:  # Initialize simulation if not already
-                        simulation = Simulation()
+                # Handle simulation start/stop
+                if "is_running" in data:
+                    is_running = data["is_running"]
+                    if is_running and not simulation:
+                        simulation = create_simulation()
                         logging.info(">> Init simulation object")
-                        simulation.set_parameters(data)
-                        logging.info(
-                            f"Start simulation with iteration count: {data['speed']}"
-                        )
-
-                elif "is_running" in data and not data["is_running"]:
-                    logging.info("Simulation paused")
-                    break  # Stop if simulation is paused
-
+                    if "speed" in data:
+                        speed = data["speed"]
+                    
+                    if is_running:
+                        logging.info("Starting simulation")
+                    else:
+                        logging.info("Simulation paused")
+                        
             except asyncio.TimeoutError:
-                pass  # No message received, continue
+                # No message received, continue with simulation if running
+                pass
 
-            # If the simulation is running, iterate and send positions
+            # Run simulation iteration if conditions are met
             if (
                 simulation
-                and simulation.is_running
-                and simulation.iteration_count < data["speed"]
+                and is_running
+                and simulation.agent_count() > 0
+                and simulation.iteration_count() < speed
             ):
                 simulation.iterate()
                 logging.info(
-                    f"Simulation count {simulation.iteration_count} ({data['speed']})\r"
+                    f"Simulation count {simulation.iteration_count() = } ({speed})"
                 )
-                positions = simulation.get_agent_positions()
-                # Prepare the payload with additional information
-                payload = {
-                    "positions": simulation.get_agent_positions(),
-                    "iteration_count": simulation.iteration_count,
-                    "speed": data["speed"],
-                }
-                await websocket.send_json(payload)
 
-                await asyncio.sleep(0.1)
+                agent_data = {
+                    agent.id: {"x": agent.position[0], "y": agent.position[1]}
+                    for agent in simulation.agents()
+                }
+                payload = {
+                    "positions": agent_data,
+                    "iteration_count": simulation.iteration_count(),
+                    "remaining_agents": simulation.agent_count(),
+                }
+                
+                await websocket.send_json(payload)
+                
+            # Small delay to prevent CPU spinning
+            await asyncio.sleep(0.01)
 
     except WebSocketDisconnect:
         logging.info("WebSocket client disconnected")
@@ -149,12 +135,15 @@ async def websocket_endpoint(websocket: WebSocket):
         logging.info("Connection closed gracefully")
     except Exception as e:
         logging.info(f"WebSocket error: {e}")
-
     finally:
-        await websocket.close()
-        logging.info("WebSocket connection closed")
+        try:
+            if websocket.client_state == WebSocketState.CONNECTED:
+                await websocket.close()
+                logging.info("WebSocket connection closed")
+        except Exception as e:
+            logging.info(f"Error closing WebSocket: {e}")
 
 
 @app.get("/")
 async def root():
-    return {"message": "Simulation API is running"}
+    return {"message": "JuPedSim WebSocket simulation running"}

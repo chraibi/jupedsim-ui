@@ -1,12 +1,13 @@
 import React from 'react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import useWebSocket from 'react-use-websocket';
 
 function App() {
     const [agents, setAgents] = useState([]);
-    const [iterationCount, setIterationCount] = useState([]);
-    const [isRunning, setIsRunning] = useState(true);
+    const [iterationCount, setIterationCount] = useState(0);
+    const [isRunning, setIsRunning] = useState(false);  // Start with false
     const [speed, setSpeed] = useState(10);
+    const [hasStarted, setHasStarted] = useState(false);  // Track if simulation has been started
     
     const { lastJsonMessage, sendJsonMessage, readyState } = useWebSocket('ws://localhost:8000/ws', {
         onOpen: () => console.log('WebSocket Connected'),
@@ -17,13 +18,25 @@ function App() {
     useEffect(() => {
         if (lastJsonMessage) {
             console.log("Received message from backend:", lastJsonMessage);
-            const { positions, iteration_count, speed } = lastJsonMessage;  
-            setAgents(positions); // Update the agent positions
-            setIterationCount(iteration_count); // Track the iteration count
+            const { positions, iteration_count, remaining_agents } = lastJsonMessage;
+            
+            // Convert positions object to array format expected by frontend
+            if (positions) {
+                const agentArray = Object.entries(positions).map(([id, pos]) => ({
+                    id: parseInt(id),
+                    position: [pos.x, pos.y]
+                }));
+                setAgents(agentArray);
+            }
+            
+            if (typeof iteration_count !== 'undefined') {
+                setIterationCount(iteration_count);
+            }
         }
     }, [lastJsonMessage]);
 
-    const updateSimulation = (newParams) => {
+    // Use useCallback to prevent unnecessary re-renders
+    const updateSimulation = useCallback((newParams = {}) => {
         const params = {
             is_running: isRunning,
             speed: speed,
@@ -31,22 +44,42 @@ function App() {
         };
         console.log("Sending parameters:", params);
         sendJsonMessage(params);
-    };
+    }, [isRunning, speed, sendJsonMessage]);
 
-    const handleSpeedChange = (newSpeed) => {
+    const handleSpeedChange = useCallback((newSpeed) => {
         setSpeed(newSpeed);
-        updateSimulation({ speed: newSpeed });
-    };
+        // Only send update if simulation has been started
+        if (hasStarted) {
+            sendJsonMessage({
+                is_running: isRunning,
+                speed: newSpeed
+            });
+        }
+    }, [isRunning, hasStarted, sendJsonMessage]);
 
-    const toggleSimulation = () => {
+    const toggleSimulation = useCallback(() => {
         const newIsRunning = !isRunning;
         setIsRunning(newIsRunning);
-        updateSimulation({ is_running: newIsRunning });
-    };
+        setHasStarted(true);
+        
+        sendJsonMessage({
+            is_running: newIsRunning,
+            speed: speed
+        });
+    }, [isRunning, speed, sendJsonMessage]);
 
-    const handleReset = () => {
-        updateSimulation({ reset: true });
-    };
+    const handleReset = useCallback(() => {
+        setAgents([]);
+        setIterationCount(0);
+        setIsRunning(false);
+        setHasStarted(false);
+        
+        sendJsonMessage({ 
+            reset: true,
+            is_running: false,
+            speed: speed
+        });
+    }, [speed, sendJsonMessage]);
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
@@ -72,17 +105,24 @@ function App() {
                             <span className="text-sm text-gray-600">{speed.toFixed(0)}</span>
                         </div>
 
-
                         {/* Play/Pause Button */}
                         <button
                             onClick={toggleSimulation}
                             className={`px-4 py-2 rounded-md font-medium ${
-                isRunning 
-                  ? 'bg-red-500 hover:bg-red-600 text-white' 
-                  : 'bg-green-500 hover:bg-green-600 text-white'
-              }`}
+                                isRunning 
+                                  ? 'bg-red-500 hover:bg-red-600 text-white' 
+                                  : 'bg-green-500 hover:bg-green-600 text-white'
+                            }`}
                         >
                             {isRunning ? 'Stop' : 'Start'}
+                        </button>
+
+                        {/* Reset Button */}
+                        <button
+                            onClick={handleReset}
+                            className="px-4 py-2 rounded-md font-medium bg-gray-500 hover:bg-gray-600 text-white"
+                        >
+                            Reset
                         </button>
 
                         {/* Connection Status */}
@@ -92,13 +132,18 @@ function App() {
                                      <span className="text-amber-600 font-medium">Connecting...</span>
                                     }
                         </div>
+                        
                         {/* Simulation count */}
                         <div className="text-sm px-4 py-2 rounded bg-gray-50">
                             Simulation count: 
-                            <span className="text-green-600 font-medium"> { iterationCount }</span>                    
-                            
+                            <span className="text-green-600 font-medium"> {iterationCount}</span>                    
                         </div>
 
+                        {/* Agent count */}
+                        <div className="text-sm px-4 py-2 rounded bg-gray-50">
+                            Agents: 
+                            <span className="text-blue-600 font-medium"> {agents.length}</span>                    
+                        </div>
                     </div>
                 </div>
 
@@ -113,13 +158,24 @@ function App() {
                              backgroundSize: '50px 50px'
                          }} />
                     
+                    {/* Simulation boundary visualization */}
+                    <div 
+                        className="absolute border-2 border-red-300 bg-red-50 bg-opacity-20"
+                        style={{
+                            left: '0%',
+                            top: '0%', 
+                            width: '50%',  // 10 units out of 20 total width
+                            height: '50%', // 10 units out of 20 total height
+                        }}
+                    />
+                    
                     {agents.map((agent) => (
                         <div
                             key={agent.id}
                             className="absolute w-6 h-6 bg-blue-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 hover:scale-150 transition-transform"
                             style={{
-                                left: `${(agent.position[0] * 100)}%`,
-                                top: `${(agent.position[1] * 100)}%`,
+                                left: `${(agent.position[0] / 20) * 100}%`,  // Scale to 20x20 grid
+                                top: `${(agent.position[1] / 20) * 100}%`,   // Scale to 20x20 grid
                                 transition: 'all 0.1s linear'
                             }}
                         >
