@@ -52,7 +52,7 @@ def create_simulation():
 
 
 def validate_data(data):
-    required_keys = {"is_running", "speed"}
+    required_keys = {"is_running", "count"}
     if not isinstance(data, dict) or not required_keys.issubset(data.keys()):
         raise ValueError(f"Invalid data received: {data}")
 
@@ -61,9 +61,9 @@ def validate_data(data):
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     simulation = None
-    speed = 100  # default max iterations
+    count = 100  # default max iterations
     is_running = False
-    
+
     try:
         while True:
             # Check for incoming messages (non-blocking)
@@ -74,7 +74,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 except ValueError as e:
                     logging.info(f"Data validation error: {e}")
                     continue  # Skip this iteration
-                
+
                 logging.info(f"Got data: {data}")
 
                 # Handle reset
@@ -88,14 +88,14 @@ async def websocket_endpoint(websocket: WebSocket):
                     if is_running and not simulation:
                         simulation = create_simulation()
                         logging.info(">> Init simulation object")
-                    if "speed" in data:
-                        speed = data["speed"]
-                    
+                    if "count" in data:
+                        count = data["count"]
+
                     if is_running:
                         logging.info("Starting simulation")
                     else:
                         logging.info("Simulation paused")
-                        
+
             except asyncio.TimeoutError:
                 # No message received, continue with simulation if running
                 pass
@@ -105,11 +105,11 @@ async def websocket_endpoint(websocket: WebSocket):
                 simulation
                 and is_running
                 and simulation.agent_count() > 0
-                and simulation.iteration_count() < speed
+                and simulation.iteration_count() < count
             ):
                 simulation.iterate()
                 logging.info(
-                    f"Simulation count {simulation.iteration_count() = } ({speed})"
+                    f"Simulation count {simulation.iteration_count() = } ({count = })"
                 )
 
                 agent_data = {
@@ -121,9 +121,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     "iteration_count": simulation.iteration_count(),
                     "remaining_agents": simulation.agent_count(),
                 }
-                
+
                 await websocket.send_json(payload)
-                
+
             # Small delay to prevent CPU spinning
             await asyncio.sleep(0.01)
 

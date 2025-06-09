@@ -6,7 +6,7 @@ function App() {
     const [agents, setAgents] = useState([]);
     const [iterationCount, setIterationCount] = useState(0);
     const [isRunning, setIsRunning] = useState(false);  // Start with false
-    const [speed, setSpeed] = useState(10);
+    const [count, setCount] = useState(10);
     const [hasStarted, setHasStarted] = useState(false);  // Track if simulation has been started
     
     const { lastJsonMessage, sendJsonMessage, readyState } = useWebSocket('ws://localhost:8000/ws', {
@@ -39,20 +39,20 @@ function App() {
     const updateSimulation = useCallback((newParams = {}) => {
         const params = {
             is_running: isRunning,
-            speed: speed,
+            count: count,
             ...newParams
         };
         console.log("Sending parameters:", params);
         sendJsonMessage(params);
-    }, [isRunning, speed, sendJsonMessage]);
+    }, [isRunning, count, sendJsonMessage]);
 
-    const handleSpeedChange = useCallback((newSpeed) => {
-        setSpeed(newSpeed);
+    const handleCountChange = useCallback((newCount) => {
+        setCount(newCount);
         // Only send update if simulation has been started
         if (hasStarted) {
             sendJsonMessage({
                 is_running: isRunning,
-                speed: newSpeed
+                count: newCount
             });
         }
     }, [isRunning, hasStarted, sendJsonMessage]);
@@ -64,9 +64,9 @@ function App() {
         
         sendJsonMessage({
             is_running: newIsRunning,
-            speed: speed
+            count: count
         });
-    }, [isRunning, speed, sendJsonMessage]);
+    }, [isRunning, count, sendJsonMessage]);
 
     const handleReset = useCallback(() => {
         setAgents([]);
@@ -77,9 +77,9 @@ function App() {
         sendJsonMessage({ 
             reset: true,
             is_running: false,
-            speed: speed
+            count: count
         });
-    }, [speed, sendJsonMessage]);
+    }, [count, sendJsonMessage]);
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
@@ -90,19 +90,19 @@ function App() {
                         <h1 className="text-3xl font-bold text-gray-800">Simulation Viewer</h1>
                     </div>
                     <div className="flex items-center gap-4">
-                        {/* Speed Control */}
+                        {/* Count Control */}
                         <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium text-gray-700">Speed:</label>
+                            <label className="text-sm font-medium text-gray-700">Count:</label>
                             <input 
                                 type="range"
                                 min="10"
                                 max="500"
                                 step="1"
-                                value={speed}
-                                onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
+                                value={count}
+                                onChange={(e) => handleCountChange(parseFloat(e.target.value))}
                                 className="w-32"
                             />
-                            <span className="text-sm text-gray-600">{speed.toFixed(0)}</span>
+                            <span className="text-sm text-gray-600">{count.toFixed(0)}</span>
                         </div>
 
                         {/* Play/Pause Button */}
