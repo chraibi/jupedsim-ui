@@ -8,6 +8,7 @@ function App() {
     const [isRunning, setIsRunning] = useState(false);  // Start with false
     const [count, setCount] = useState(10);
     const [hasStarted, setHasStarted] = useState(false);  // Track if simulation has been started
+    const [geometry, setGeometry] = useState(null);  // Store geometry data
     
     const { lastJsonMessage, sendJsonMessage, readyState } = useWebSocket('ws://localhost:8000/ws', {
         onOpen: () => console.log('WebSocket Connected'),
@@ -18,6 +19,14 @@ function App() {
     useEffect(() => {
         if (lastJsonMessage) {
             console.log("Received message from backend:", lastJsonMessage);
+            
+            // Handle geometry data
+            if (lastJsonMessage.type === 'geometry') {
+                setGeometry(lastJsonMessage.geometry);
+                return;
+            }
+            
+            // Handle simulation data
             const { positions, iteration_count, remaining_agents } = lastJsonMessage;
             
             // Convert positions object to array format expected by frontend
@@ -73,6 +82,7 @@ function App() {
         setIterationCount(0);
         setIsRunning(false);
         setHasStarted(false);
+        setGeometry(null);  // Clear geometry
         
         sendJsonMessage({ 
             reset: true,
@@ -80,6 +90,20 @@ function App() {
             count: count
         });
     }, [count, sendJsonMessage]);
+
+    // Helper function to convert simulation coordinates to screen coordinates
+    const toScreenCoords = (x, y) => ({
+        x: (x / 10) * 100,  // Convert to percentage of container
+        y: (y / 10) * 100
+    });
+
+    // Helper function to create SVG path from polygon points
+    const createPolygonPath = (points) => {
+        return points.map((point, index) => {
+            const coords = toScreenCoords(point[0], point[1]);
+            return `${index === 0 ? 'M' : 'L'} ${coords.x} ${coords.y}`;
+        }).join(' ') + ' Z';
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
@@ -96,7 +120,7 @@ function App() {
                             <input 
                                 type="range"
                                 min="10"
-                                max="500"
+                                max="1000"
                                 step="1"
                                 value={count}
                                 onChange={(e) => handleCountChange(parseFloat(e.target.value))}
@@ -152,38 +176,87 @@ function App() {
                     className="relative w-full h-[800px] rounded-lg border border-gray-200 bg-white shadow-lg"
                     style={{ overflow: 'hidden' }}
                 >
-                    {/* Grid Lines */}
-                    <div className="absolute inset-0" style={{ 
-                             backgroundImage: 'linear-gradient(to right, #f0f0f0 1px, transparent 1px), linear-gradient(to bottom, #f0f0f0 1px, transparent 1px)',
-                             backgroundSize: '50px 50px'
-                         }} />
+                    {/* SVG for geometry visualization */}
+                    <svg 
+                        className="absolute inset-0 w-full h-full"
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
+                    >
+                        {/* Grid pattern */}
+                        <defs>
+                            <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#f0f0f0" strokeWidth="0.5"/>
+                            </pattern>
+                        </defs>
+                        <rect width="100" height="100" fill="url(#grid)" />
+                        
+                        {/* Render geometry if available */}
+                        {geometry && (
+                            <>
+                                {/* Main boundary */}
+                                <path 
+                                    d={createPolygonPath(geometry.boundary)}
+                                    fill="rgba(229, 231, 235, 0.3)"
+                                    stroke="#9CA3AF"
+                                    strokeWidth="0.5"
+                                />
+                                
+                                {/* Obstacle */}
+                                <path 
+                                    d={createPolygonPath(geometry.obstacle)}
+                                    fill="rgba(239, 68, 68, 0.7)"
+                                    stroke="#DC2626"
+                                    strokeWidth="0.8"
+                                />
+                                
+                                {/* Exit */}
+                                <path 
+                                    d={createPolygonPath(geometry.exit)}
+                                    fill="rgba(34, 197, 94, 0.7)"
+                                    stroke="#16A34A"
+                                    strokeWidth="0.8"
+                                />
+                            </>
+                        )}
+                    </svg>
                     
-                    {/* Simulation boundary visualization */}
-                    <div 
-                        className="absolute border-2 border-red-300 bg-red-50 bg-opacity-20"
-                        style={{
-                            left: '0%',
-                            top: '0%', 
-                            width: '50%',  // 10 units out of 20 total width
-                            height: '50%', // 10 units out of 20 total height
-                        }}
-                    />
-                    
-                    {agents.map((agent) => (
-                        <div
-                            key={agent.id}
-                            className="absolute w-6 h-6 bg-blue-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 hover:scale-150 transition-transform"
-                            style={{
-                                left: `${(agent.position[0] / 20) * 100}%`,  // Scale to 20x20 grid
-                                top: `${(agent.position[1] / 20) * 100}%`,   // Scale to 20x20 grid
-                                transition: 'all 0.1s linear'
-                            }}
-                        >
-                            <div className="absolute -top-6 w-full text-center text-xs">
-                                {agent.id}
+                    {/* Agents */}
+                    {agents.map((agent) => {
+                        const screenCoords = toScreenCoords(agent.position[0], agent.position[1]);
+                        return (
+                            <div
+                                key={agent.id}
+                                className="absolute w-4 h-4 bg-blue-600 rounded-full transform -translate-x-1/2 -translate-y-1/2 hover:scale-150 transition-transform border-2 border-white shadow-lg"
+                                style={{
+                                    left: `${screenCoords.x}%`,
+                                    top: `${screenCoords.y}%`,
+                                    transition: 'all 0.1s linear',
+                                    zIndex: 10
+                                }}
+                            >
+                                <div className="absolute -top-6 w-full text-center text-xs font-medium text-gray-700">
+                                    {agent.id}
+                                </div>
                             </div>
+                        );
+                    })}
+                    
+                    {/* Legend */}
+                    <div className="absolute top-4 right-4 bg-white p-3 rounded-lg shadow-md border text-sm">
+                        <div className="font-semibold mb-2">Legend</div>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-4 h-4 bg-red-400 border border-red-600"></div>
+                            <span>Obstacle</span>
                         </div>
-                    ))}
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-4 h-4 bg-green-400 border border-green-600"></div>
+                            <span>Exit</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 bg-blue-600 rounded-full border-2 border-white"></div>
+                            <span>Agents</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
